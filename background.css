@@ -1,0 +1,13 @@
+body {
+  background-image: url('C:\Users\Bob\OneDrive - University of Massachusetts Boston\Data science\BIOL607\homework\Midterm\state_park.jpg');
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+  background-size: 100%;
+
+}
+
+div {
+  background-color: rgba(255, 255, 255, 0.35)   /* 100% opaque white */;
+  padding: 0.25em;
+
+}

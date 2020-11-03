@@ -1,0 +1,197 @@
+---
+output: 
+  html_document: 
+    css: background.css
+    theme: cosmo
+---
+---
+title: "Midterm"
+author: "Bob Bartolini"
+date: "11/2/2020"
+output: html_document
+  
+
+---
+
+
+https://github.com/rjmaitri/Midterm.git
+
+```{r setup, include=FALSE}
+#scrolling code output
+knitr::opts_chunk$set(
+	echo = TRUE,
+	message = FALSE,
+	warning = FALSE
+)
+options(width = 60)
+local({
+  hook_output <- knitr::knit_hooks$get('output')
+  knitr::knit_hooks$set(output = function(x, options) {
+    if (!is.null(options$max.height)) options$attr.output <- c(
+      options$attr.output,
+      sprintf('style="max-height: %s;"', options$max.height)
+    )
+    hook_output(x, options)
+  })
+})
+```
+
+```{r}
+library(readr)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(plotly)
+
+```
+
+### 1) Sampling your system (10 points)
+#### Each of you has a study system your work in and a question of interest. 
+####RNA-sequencing technology provides data on transcript abundance and diversity. This technology allows us to interrogate the effects of chemotherapeutic treatments to different cancer cell lines.
+Give an example of one variable that you would sample in order to get a sense of its variation in nature.
+#the transcriptomics of diseased tissue vs. healthy tissue is revealed through RNA-sequencing technologies and differential gene expression analysis. 
+Describe, in detail, how you would sample for the population of that variable in order to understand its distribution.
+#The commercially available dataset that is used for my final contains different types of cancer and  for single-
+Questions to consider include, but are not limited to:
+Just what is your sample versus your population? What would your sampling design be? Why would you design it that particular way? What are potential confounding influences of both sampling technique and sample design that you need to be careful to avoid? What statistical distribution might the variable take, and why?
+
+#### Can i see my answer?
+
+2) Data Reshaping and Visuzliation
+Johns Hopkins has been maintaining one of the best Covid-19 timseries data sets out there. The data on the US can be found here with information about what is in the data at https://github.com/CSSEGISandData/COVID-19/tree/master/csse_covid_19_data
+
+
+
+2a) Access (5 points)
+Download and read in the data. Can you do this without downloading, but read directly from the archive (+1).
+
+```{r}
+#read raw github from internet
+
+Covid_JHU <- read_csv("https://raw.githubusercontent.com/CSSEGISandData/COVID-19/master/csse_covid_19_data/csse_covid_19_time_series/time_series_covid19_confirmed_US.csv")
+
+#look at the file
+head(Covid_JHU)
+
+
+```
+
+2b) It’s big and wide! (10 Points)
+The data is, well, huge. It’s also wide, with dates as columns. Write a function that, given a state, will output a time series (long data where every row is a day) of cummulative cases in that state as well as new daily cases.
+
+```{r}
+
+#write a function/figure out way to update by day
+
+state_function <- function(x) {
+
+#select states and dates
+clean_covid <- Covid_JHU %>%
+  select(state = 7, 12:297)
+
+
+
+#insert pivot long here
+
+#pivot long
+Covid_long <- pivot_longer(clean_covid,
+                           cols = !state,
+                           names_to = "Date",
+                           values_to = "Cases")
+
+#lubridates
+
+Covid_dates <- Covid_long %>% 
+  mutate(Date = mdy(Date))
+
+#group by date, state and summarize cases
+
+tidying_up <- Covid_dates %>%
+      
+      group_by(Date, state) %>%
+
+      summarise(Cases = sum(Cases))
+
+#filter by function input
+tidy_covid <- tidying_up %>%
+  rowwise() %>%
+  filter(state == x) 
+
+return(tidy_covid)
+
+
+}
+
+Mass_data <- state_function("Massachusetts")
+
+Mass_data
+```
+
+2c) Let’s get visual! (10 Points)
+Great! Make a compelling plot of the timeseries for Massachusetts! Points for style, class, ease of understanding major trends, etc. Note, 10/10 only for the most killer figures. Don’t phone it in! Also, note what the data from JHU is. Do you want the cummulatives, or daily, or what?
+
+```{r}
+p <- Mass_data %>%
+  ggplot( aes(x=Date, y=Cases)) +
+    geom_area(fill="#69b3a2", alpha=0.5) +
+    geom_line(color="#69b3a2") +
+    ylab("Covid 19 Infections)") +
+    theme_dark()
+
+# Turn it interactive with ggplotly
+p <- ggplotly(p)
+p
+
+# save the widget
+
+```
+
+
+
+2d) At our fingertips (10 Points)
+Cool. Now, write a function that will take what you did above, and create a plot for any state - so, I enter Alaska and I get the plot for Alaska! +2 if it can do daily or cumulative cases - or cases per 100,000 if you did that above. +3 EC if you highlight points of interest - but dynamically using the data. Note, you might need to do some funky stuff to make things fit well in the plot for this one. Or, meh.
+
+```{r}
+
+
+
+```
+
+2d Extra Credit) Go wild on data viz (5 Points each)
+Use what you’ve done - or even new things (data sets, etc) so make compelling informative world-shaking visualizations that compare between states. Feel free to bring in outside information, aggregate things, or do whatever you would like. +5 per awesome viz (and Michael will be grading hard - if you don’t knock his socks off, it might only be +1) and +3 if you accompany it with a function that lets us play around and make new viz.
+
+3) Let’s get philosophical. (10 points)
+We have discussed multiple inferential frameworks this semester. Frequentist NHST, Likelihood and model comparison, Baysian probabilistic thinking, Assessment of Predictive Ability (which spans frameworks!), and more. We’ve talked about Popper and Lakatos. Put these pieces of the puzzle together and look deep within yourself.
+
+What do you feel is the inferential framework that you adopt as a scientist? Why? Include in your answer why you prefer the inferential tools (e.g. confidence intervals, test statistics, out-of-sample prediction, posterior probabilities, etc.) of your chosen worldview and why you do not like the ones of the other one. This includes defining just what those different tools mean, as well as relating them to the things you study. extra credit for citing and discussing outside sources - one point per source/point
+
+4) Bayes Theorem (10 points)
+I’ve referenced the following figure a few times. I’d like you to demonstrate your understanding of Bayes Theorem by hand (e.g. calculate it out and show your work - you can do this all in R, I’m not a monster) showing what is the probability of the sun exploding is given that the device said yes. Assume that your prior probability that the sun explodes is p(Sun Explodes) = 0.0001 (I’ll leave it to you to get p(Sun Doesn’t Explode). The rest of the information you need - and some you don’t - is in the cartoon - p(Yes | Explodes), p(Yes | Doesn’t Explode), p(No | Explodes), p(No | Doesn’t Explode).
+
+
+
+4a Extra Credit (10 Points)
+Why is this a bad parody of frequentist statistics?
+
+5) Quailing at the Prospect of Linear Models
+I’d like us to walk through the three different ‘engines’ that we have learned about to fit linear models. To motivate this, we’ll look at Burness et al.’s 2012 study "Post-hatch heat warms adult beaks: irreversible physiological plasticity in Japanese quail http://rspb.royalsocietypublishing.org/content/280/1767/20131436.short the data for which they have made available at Data Dryad at http://datadryad.org/resource/doi:10.5061/dryad.gs661. We’ll be looking at the morphology data.
+
+5a) Three fits (10 points)
+To begin with, I’d like you to fit the relationship that describes how Tarsus (leg) length predicts upper beak (Culmen) length. Fit this relationship using least squares, likelihood, and Bayesian techniques. For each fit, demonstrate that the necessary assumptions have been met. Note, functions used to fit with likelihood and Bayes may or may not behave well when fed NAs. So look out for those errors.
+
+5b) Three interpretations (10 points)
+OK, now that we have fits, take a look! Do the coefficients and their associated measures of error in their estimation match? How would we interpret the results from these different analyses differently? Or would we? Note, confint works on lm objects as well.
+
+5c) Everyday I’m Profilin’ (10 points)
+For your likelihood fit, are your profiles well behaved? For just the slope, use grid sampling to create a profile. You’ll need to write functions for this, sampling the whole grid of slope and intercept, and then take out the relevant slices as we have done before. Use the results from the fit above to provide the reasonable bounds of what you should be profiling over (3SE should do). Is it well behaved? Plot the profile and give the 80% and 95% CI (remember how we use the chisq here!). Verify your results with profileModel.
+
+5d) The Power of the Prior (10 points)
+This data set is pretty big. After excluding NAs in the variables we’re interested in, it’s over 766 lines of data! Now, a lot of data can overwhelm a strong prior. But only to a point. Show first that there is enough data here that a prior for the slope with an estimate of 0.7 and a sd of 0.01 is overwhelmed and produces similar results to the default prior. How different are the results from the original?
+
+Second, randomly sample 10, 100, 300, and 500 data points. At which level is our prior overwhelmed (e.g., the prior slope becomes highly unlikely)? Communicate that visually in the best way you feel gets the point across, and explain your reasoning.
+
++4 for a function that means you don’t have to copy and paste the model over and over. + 4 more if you use map() in combination with a tibble to make this as code-efficient as possible. This will also make visualization easier.
+
+6) Cross-Validation and Priors (15 points)
+There is some interesting curvature in the culmen-tarsus relationship. Is the relationship really linear? Squared? Cubic? Exponential? Use one of the cross-validation techniques we explored to show which model is more predictive. Justify your choice of technique. Do you get a clear answer? What does it say?
