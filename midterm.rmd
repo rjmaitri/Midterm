@@ -132,6 +132,8 @@ Mass_data
 Great! Make a compelling plot of the timeseries for Massachusetts! Points for style, class, ease of understanding major trends, etc. Note, 10/10 only for the most killer figures. Don’t phone it in! Also, note what the data from JHU is. Do you want the cummulatives, or daily, or what?
 
 ```{r}
+
+
 p <- Mass_data %>%
   ggplot( aes(x=Date, y=Cases)) +
     geom_area(fill="#69b3a2", alpha=0.5) +
@@ -143,7 +145,7 @@ p <- Mass_data %>%
 p <- ggplotly(p)
 p
 
-# save the widget
+
 
 ```
 
@@ -153,18 +155,39 @@ p
 Cool. Now, write a function that will take what you did above, and create a plot for any state - so, I enter Alaska and I get the plot for Alaska! +2 if it can do daily or cumulative cases - or cases per 100,000 if you did that above. +3 EC if you highlight points of interest - but dynamically using the data. Note, you might need to do some funky stuff to make things fit well in the plot for this one. Or, meh.
 
 ```{r}
+#modularize state data and plot
+state_plot <- function(x){
+  
+  #state function
+  data <- state_function(x)
+  
+#create a ggplot object with state data 
+  p <- data %>%
+  ggplot( aes(x=Date, y=Cases)) +
+    geom_area(fill="#69b3a2", alpha=0.5) +
+    geom_line(color="#69b3a2") +
+    ylab("Covid 19 Infections)") +
+    theme_dark()
 
+# Turn it interactive with ggplotly
+out <- ggplotly(p)
 
+  
+  return(out)
+}
 
+state_plot("Alabama")
 ```
 
-2d Extra Credit) Go wild on data viz (5 Points each)
-Use what you’ve done - or even new things (data sets, etc) so make compelling informative world-shaking visualizations that compare between states. Feel free to bring in outside information, aggregate things, or do whatever you would like. +5 per awesome viz (and Michael will be grading hard - if you don’t knock his socks off, it might only be +1) and +3 if you accompany it with a function that lets us play around and make new viz.
 
 3) Let’s get philosophical. (10 points)
 We have discussed multiple inferential frameworks this semester. Frequentist NHST, Likelihood and model comparison, Baysian probabilistic thinking, Assessment of Predictive Ability (which spans frameworks!), and more. We’ve talked about Popper and Lakatos. Put these pieces of the puzzle together and look deep within yourself.
 
+
+
 What do you feel is the inferential framework that you adopt as a scientist? Why? Include in your answer why you prefer the inferential tools (e.g. confidence intervals, test statistics, out-of-sample prediction, posterior probabilities, etc.) of your chosen worldview and why you do not like the ones of the other one. This includes defining just what those different tools mean, as well as relating them to the things you study. extra credit for citing and discussing outside sources - one point per source/point
+
+
 
 4) Bayes Theorem (10 points)
 I’ve referenced the following figure a few times. I’d like you to demonstrate your understanding of Bayes Theorem by hand (e.g. calculate it out and show your work - you can do this all in R, I’m not a monster) showing what is the probability of the sun exploding is given that the device said yes. Assume that your prior probability that the sun explodes is p(Sun Explodes) = 0.0001 (I’ll leave it to you to get p(Sun Doesn’t Explode). The rest of the information you need - and some you don’t - is in the cartoon - p(Yes | Explodes), p(Yes | Doesn’t Explode), p(No | Explodes), p(No | Doesn’t Explode).
