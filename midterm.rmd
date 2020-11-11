@@ -394,24 +394,9 @@ For your likelihood fit, are your profiles well behaved? For just the slope, use
 
 
 
-```{r}
-#verify 95% CI results
-prof <- profileModel(quail_mle,
-                     objective = "ordinaryDeviance",
-                     quantile = qchisq(0.95,1))
-plot(prof)
 
 
-```
 
-```{r}
-#verify 80% CI results
-prof80 <- profileModel(quail_mle,
-                     objective = "ordinaryDeviance",
-                     quantile = qchisq(0.80,1))
-plot(prof80)
-
-```
 
 ```{r}
 #####
@@ -423,7 +408,7 @@ plot(prof80)
 #(3SE should do). Is it well behaved? Plot the profile and give the 80% and 95% CI (remember how we use the chisq here!).
 #Verify your results with profileModel.
 
-norm_likelihood <- function(obs, mean_est, sd_est){
+norm_loglikelihood <- function(obs, mean_est, sd_est){
   
   #data generating process
   est <- mean_est
@@ -433,11 +418,43 @@ norm_likelihood <- function(obs, mean_est, sd_est){
   
 }
 
+norm_likelihood <- function(obs, mean_est, sd_est){
+  
+  #data generating process
+  est <- mean_est
+  
+  #likelihood
+  prod(dnorm(obs, mean = est, sd = sd_est, log = TRUE))
+  
+}
+
 quail_dist <- crossing(m = seq(30, 40, by = 0.1),
-                       s=seq(5, 15, by = 0.1)) %>%
-  rowwise() %>%
-  mutate(log_lik = norm_likelihood(obs = na.omit(quail_data$Tarsus..mm.), mean_est = m, sd_est = s)) %>% 
+                      s=seq(5, 15, by = 0.1)) %>%
+  group_by(m,s) %>%
+  mutate(lik = norm_likelihood(obs = na.omit(quail_data$Tarsus..mm.), mean_est = m, sd_est = s),log_lik = norm_loglikelihood(obs = na.omit(quail_data$Tarsus..mm.), mean_est = m, sd_est = s),
+deviance = -2 * log_lik) %>% 
   ungroup()
+
+cont_plot <- ggplot(data = quail_dist %>% filter(log_lik > max(log_lik) - 3),
+       mapping = aes(x = m, y = s, z = log_lik)) +
+  geom_contour_filled(bins = 20) +
+  guides(fill = "none")
+
+cont_plot
+
+
+
+
+
+####
+
+quail_distest <- crossing(m = seq(30, 40, by = 0.1),
+                       s=seq(5, 15, by = 0.1)) %>%
+  group_by(m, s) %>%
+  mutate(lik = norm_lik(obs, m_est, sd_est),
+         loglik = norm_loglik(obs, m_est, sd_est),
+         deviance = -2 * loglik) %>%
+  ungroup
 
 
 
@@ -457,16 +474,49 @@ quail_m_profile <- quail_dist %>%
 
 qplot(m, log_lik, data=quail_m_profile, geom = "line")
 
-# 95% CI - that the points that are 1.92 away from the MLE's loglik
-# remember, we want the quantile of the chisq divided by 2 so we
-# get both tails
-qchisq(0.95, df = 1)/2
-qchisq(0.80, df = 1)/2
+```
 
-lik_df_mult %>%
-  filter(loglik >= max(loglik) - qchisq(0.95, df = 1)/2) %>%
+
+cont_plot <- ggplot(data = lik_df_norm %>% filter(loglik > max(loglik) - 3),
+       mapping = aes(x = m, y = s, z = loglik)) +
+  geom_contour_filled(bins = 20) +
+  guides(fill = "none")
+
+
+```{r}
+
+
+quail_m_profile %>%
+  filter(log_lik >= max(log_lik) - qchisq(0.95, df = 1)/2) %>%
+  as.data.frame()
+```
+
+```{r}
+#verify 95% CI results
+prof <- profileModel(quail_mle,
+                     objective = "ordinaryDeviance",
+                     quantile = qchisq(0.95,1))
+plot(prof)
+
+
+```
+
+```{r}
+
+quail_m_profile %>%
+  filter(log_lik >= max(log_lik) - qchisq(0.80, df = 1)/2) %>%
   as.data.frame()
 
+```
+
+
+
+```{r}
+#verify 80% CI results
+prof80 <- profileModel(quail_mle,
+                     objective = "ordinaryDeviance",
+                     quantile = qchisq(0.80,1))
+plot(prof80)
 
 ```
 
