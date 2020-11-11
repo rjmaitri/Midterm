@@ -282,7 +282,7 @@ plot(LSquail, which =1)
 
 ```
 
-<span style="color: green;">The residuals vs. fitted plot suggests that the assumption of linearity is reasonable, as it is a nice cloud formation around the 0 line.</span>
+<span style="color: green;">The residuals vs. fitted plot suggests no relationship between residuals and fitted values, as it is a nice cloud formation around the 0 line.</span>
 
 ```{r}
 plot(LSquail, which =2)
@@ -408,7 +408,8 @@ For your likelihood fit, are your profiles well behaved? For just the slope, use
 #(3SE should do). Is it well behaved? Plot the profile and give the 80% and 95% CI (remember how we use the chisq here!).
 #Verify your results with profileModel.
 
-norm_loglikelihood <- function(obs, mean_est, sd_est){
+
+norm_likelihood <- function(obs, mean_est, sd_est){
   
   #data generating process
   est <- mean_est
@@ -417,78 +418,60 @@ norm_loglikelihood <- function(obs, mean_est, sd_est){
   sum(dnorm(obs, mean = est, sd = sd_est, log = TRUE))
   
 }
-
-norm_likelihood <- function(obs, mean_est, sd_est){
-  
-  #data generating process
-  est <- mean_est
-  
-  #likelihood
-  prod(dnorm(obs, mean = est, sd = sd_est, log = TRUE))
-  
-}
-
 quail_dist <- crossing(m = seq(30, 40, by = 0.1),
-                      s=seq(5, 15, by = 0.1)) %>%
-  group_by(m,s) %>%
-  mutate(lik = norm_likelihood(obs = na.omit(quail_data$Tarsus..mm.), mean_est = m, sd_est = s),log_lik = norm_loglikelihood(obs = na.omit(quail_data$Tarsus..mm.), mean_est = m, sd_est = s),
-deviance = -2 * log_lik) %>% 
-  ungroup()
-
-cont_plot <- ggplot(data = quail_dist %>% filter(log_lik > max(log_lik) - 3),
-       mapping = aes(x = m, y = s, z = log_lik)) +
-  geom_contour_filled(bins = 20) +
-  guides(fill = "none")
-
-cont_plot
-
-
-
-
-
-####
-
-quail_distest <- crossing(m = seq(30, 40, by = 0.1),
                        s=seq(5, 15, by = 0.1)) %>%
-  group_by(m, s) %>%
-  mutate(lik = norm_lik(obs, m_est, sd_est),
-         loglik = norm_loglik(obs, m_est, sd_est),
-         deviance = -2 * loglik) %>%
-  ungroup
-
-
-
-
-quail_dist %>%
-  filter(log_lik == max(log_lik))
-
+  rowwise() %>%
+  mutate(log_lik = norm_likelihood(obs = na.omit(quail_data$Tarsus..mm.), mean_est = m, sd_est = s)) %>% 
+  ungroup()
 
 ```
 
 ```{r}
+quail_dist %>%
+  filter(log_lik == max(log_lik))
+```
 
+```{r}
 quail_m_profile <- quail_dist %>%
   group_by(m) %>%
   filter(log_lik == max(log_lik)) %>%
   ungroup()
-
 qplot(m, log_lik, data=quail_m_profile, geom = "line")
 
 ```
 
 
-cont_plot <- ggplot(data = lik_df_norm %>% filter(loglik > max(loglik) - 3),
-       mapping = aes(x = m, y = s, z = loglik)) +
-  geom_contour_filled(bins = 20) +
-  guides(fill = "none")
-
 
 ```{r}
+ninetyfive_CI <- quail_m_profile %>%
+  filter(log_lik > max(log_lik) - qchisq(0.95, df = 1)/2) %>%
+    filter(row_number()==1 | row_number()==n())
 
+ninetyfive_CI
+```
 
-quail_m_profile %>%
-  filter(log_lik >= max(log_lik) - qchisq(0.95, df = 1)/2) %>%
-  as.data.frame()
+```{r}
+eighty_CI <- quail_m_profile %>%
+  filter(log_lik > max(log_lik) - qchisq(0.80, df = 1)/2) %>%
+    filter(row_number()==1 | row_number()==n())
+
+eighty_CI
+
+```
+
+```{r}
+quail_m_profile <- quail_dist %>%
+  group_by(m) %>%
+  filter(log_lik == max(log_lik)) %>%
+  ungroup()
+
+qplot(m, log_lik, data=quail_m_profile, geom = "line")+
+  geom_vline(xintercept=31.5, color = "red")+
+  geom_vline(xintercept=32, color = "red")+
+  geom_vline(xintercept=31.3, color = "blue")+
+  geom_vline(xintercept=32.2, color = "blue")+
+  theme_minimal()
+
 ```
 
 ```{r}
