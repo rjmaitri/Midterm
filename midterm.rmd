@@ -44,27 +44,22 @@ library(ggplot2)
 library(lubridate)
 library(plotly)
 library(profileModel)
-
+library(brms)
+library(bayesplot)
+library(reactable)
 ```
 
 ### 1) Sampling your system (10 points)
 #### Each of you has a study system your work in and a question of interest.
 
-<span style="color: green;">Breast caRNA-sequencing technology provides data on transcript abundance and diversity. This technology allows us to interrogate the transcriptomic effects of chemotherapeutic drug treatments on breast cancer cell (BCC) lines.
-Give an example of one variable that you would sample in order to get a sense of its variation in nature.</span>
+<span style="color: green;">High-throughput sequencing technology provides data on transcript abundance and diversity. This technology allows us to interrogate the transcriptomic effects of chemotherapeutic drug treatments on breast cancer cell (BCC) lines. We can interrogate the transcriptional effects of chemotherapeutics by culturing a BCC line with different combinations of chemotherapuetic agents, thus, interrogate the transcriptional changes that occur under chemothrapy.</span>
 
-#The gene expression profiles of a BCC line varies under different chemotherapeutic drugs. By culturing the same
-cell line with 7 different agents, we can interrogate the transcriptional changes that occur from each therapy.
+<span style="color: green;">The negative binomial distribution is suited for this data because it is count data with a variance that shifts away from the mean with greater gene expression. The variance behaves this way because experiments typically have 3-5 samples with a few highly expressed genes and many, lowly expressed genes. The negative binomial distribution is suited for this data, as it accomodates the variance shifting away from the mean with higher levels of gene expression. Theoretically, a poisson distribution would work with a larger sample size, however, this is financially burdensome.</span>
 
-Describe, in detail, how you would sample for the population of that variable in order to understand its distribution.
-Random sampling from breast cancer tissue throughout the population would be ideal, however 2/3rds of all in vitro breast cancer research uses three BCC lines, the oldest line has been cultured since 1970 and retains many features of the tumor that it originated from. Biological triplicates gives a gene expression distribution under different chemotherapeutic effects.
+<span style="color: green;">Random sampling from breast cancer tissue throughout the population would be ideal, however 2/3rds of all in vitro breast cancer research uses three BCC lines, with the the oldest line has been cultured since 1970 and retains many features of the tumor that it originated from. Biological triplicates and experimental replicates enhance the validity of estimation. 
+Improper experimental design and execution create batch effects. Asynchrounously running the experiments, different reagents, inconsistent cell culture techniques can create batch and counfounding effects on the results of the experiment. These need to be minimized in order to provide credibility to the recorded effects of the chemotherapeutic agents.</span> 
 
-Questions to consider include, but are not limited to:
-Just what is your sample versus your population? What would your sampling design be? Why would you design it that particular way?
-The samples within the dataset are a breast cancer cell line (MCF-7) which is a ubiquitous estrogen-receptor positive in-vitro breast cancer modle.  
-What are potential confounding influences of both sampling technique and sample design that you need to be careful to avoid? What statistical distribution might the variable take, and why?
-Improper experimental design and execution create batch effects. Asynchrounously running the experiments, different reagents, inconsistent cell culture techniques can create batch and counfounding effects on the results of the experiment. These need to be minimized in order to provide credibility to the recorded effects of the chemotherapeutic agents. 
-
+<span style="color: green;">Further, the genomic instability of cancer creates the possibility for confounding effects, as the differential gene expression seen across treatments may be related to differences within the sample itself.</span>
 
 2) Data Reshaping and Visuzliation
 Johns Hopkins has been maintaining one of the best Covid-19 timseries data sets out there. The data on the US can be found here with information about what is in the data at https://github.com/CSSEGISandData/COVID-19/tree/master/csse_covid_19_data
@@ -133,7 +128,7 @@ return(tidy_covid)
 
 Mass_data <- state_function("Massachusetts")
 
-Mass_data
+reactable(Mass_data)
 ```
 
 2c) Let’s get visual! (10 Points)
@@ -195,6 +190,7 @@ We have discussed multiple inferential frameworks this semester. Frequentist NHS
 
 What do you feel is the inferential framework that you adopt as a scientist? Why? Include in your answer why you prefer the inferential tools (e.g. confidence intervals, test statistics, out-of-sample prediction, posterior probabilities, etc.) of your chosen worldview and why you do not like the ones of the other one. This includes defining just what those different tools mean, as well as relating them to the things you study. extra credit for citing and discussing outside sources - one point per source/point
 
+<span style="color: green;">I am inclined towards inferential thought processes that resemble Bayesian probabilistic thinking, as I tend to make causal inferences from observing patterns. Further, this inferential thought process is influenced by prior knowledge which is analguous to a conditional probability. 
 
 
 
@@ -282,11 +278,13 @@ plot(LSquail, which =1)
 
 ```
 
-<span style="color: green;">The residuals vs. fitted plot suggests no relationship between residuals and fitted values, as it is a nice cloud formation around the 0 line.</span>
+<span style="color: green;">The residuals vs. fitted plot upholds the assumption that residuals and fitted values are independent. The is evident by the cloud formation around the 0 line.</span>
 
 ```{r}
 plot(LSquail, which =2)
 ```
+
+<span style="color: green;">This qqplot maintains the assumption of normally distributed data, as the residuals 
 
 ```{r}
 #f-tests of model
@@ -352,6 +350,7 @@ qplot(fitted, res)+
 qqnorm(res)
 
 
+
 ```
 
 ```{r}
@@ -380,21 +379,83 @@ summary(quail_mle)
 Bayes Regression
 
 ```{r}
+options(mc.cores = parallel::detectCores())
+set.seed(600)
+tarsus_brm <- brm(Culmen..mm. ~ Tarsus..mm.,
+                  data = quail_data,
+                  family = gaussian(link = "identity"))
 
+plot(tarsus_brm)+
+  scale_color_manual(values = c("red", "blue", "orange", "yellow"))
 
 ```
+
+<span style="color: green;">The parameters are behaved and the chains show convergence</span>
+
+```{r}
+
+tarsus_posterior <- posterior_samples(tarsus_brm, add_chain = T)
+
+head(tarsus_posterior)
+
+```
+
+```{r}
+mcmc_trace(tarsus_posterior)+
+  scale_color_manual(values = c("red", "blue", "orange", "yellow"))
+
+```
+
+```{r}
+rhat(tarsus_brm)
+
+```
+
+```{r}
+
+mcmc_acf(tarsus_posterior)
+
+```
+
+```{r}
+tarsus_fit <- fitted(tarsus_brm) %>% as.data.frame()
+tarsus_res <- residuals(tarsus_brm) %>% as.data.frame()
+
+plot(tarsus_fit$Estimate, tarsus_res$Estimate)
+
+```
+
+
+```{r}
+
+qqnorm(tarsus_res$Estimate)
+qqline(tarsus_res$Estimate)
+
+```
+
+# Check the match between our data and our chains 
+# for distributions of y
+pp_check(seal_lm_bayes, "dens_overlay")
+
+# Is our error normal? 
+# About error and future predictions
+pp_check(seal_lm_bayes, "error_hist", bins = 10)
+pp_check(seal_lm_bayes, "error_scatter_avg")
+
+# fitted v. residual 
+# did we miss a nonlinearity
+seal_res <- residuals(seal_lm_bayes) %>% as_tibble
+seal_fit <- fitted(seal_lm_bayes) %>% as_tibble
+
+plot(y = seal_res$Estimate, x = seal_fit$Estimate)
+
+
 
 5b) Three interpretations (10 points)
 OK, now that we have fits, take a look! Do the coefficients and their associated measures of error in their estimation match? How would we interpret the results from these different analyses differently? Or would we? Note, confint works on lm objects as well.
 
 5c) Everyday I’m Profilin’ (10 points)
 For your likelihood fit, are your profiles well behaved? For just the slope, use grid sampling to create a profile. You’ll need to write functions for this, sampling the whole grid of slope and intercept, and then take out the relevant slices as we have done before. Use the results from the fit above to provide the reasonable bounds of what you should be profiling over (3SE should do). Is it well behaved? Plot the profile and give the 80% and 95% CI (remember how we use the chisq here!). Verify your results with profileModel.
-
-
-
-
-
-
 
 
 
@@ -432,18 +493,22 @@ quail_dist %>%
 ```
 
 ```{r}
-quail_m_profile <- quail_dist %>%
-  group_by(m) %>%
+#profile for the mean
+quail_sd_profile <- quail_dist %>%
+  #group by sd
+  group_by(s) %>%
+  #filter out mle
   filter(log_lik == max(log_lik)) %>%
   ungroup()
-qplot(m, log_lik, data=quail_m_profile, geom = "line")
+
+qplot(s, log_lik, data=quail_sd_profile, geom = "line")
 
 ```
 
 
 
 ```{r}
-ninetyfive_CI <- quail_m_profile %>%
+ninetyfive_CI <- quail_sd_profile %>%
   filter(log_lik > max(log_lik) - qchisq(0.95, df = 1)/2) %>%
     filter(row_number()==1 | row_number()==n())
 
@@ -451,7 +516,7 @@ ninetyfive_CI
 ```
 
 ```{r}
-eighty_CI <- quail_m_profile %>%
+eighty_CI <- quail_sd_profile %>%
   filter(log_lik > max(log_lik) - qchisq(0.80, df = 1)/2) %>%
     filter(row_number()==1 | row_number()==n())
 
@@ -461,15 +526,15 @@ eighty_CI
 
 ```{r}
 quail_m_profile <- quail_dist %>%
-  group_by(m) %>%
+  group_by(s) %>%
   filter(log_lik == max(log_lik)) %>%
   ungroup()
 
-qplot(m, log_lik, data=quail_m_profile, geom = "line")+
-  geom_vline(xintercept=31.5, color = "red")+
-  geom_vline(xintercept=32, color = "red")+
-  geom_vline(xintercept=31.3, color = "blue")+
-  geom_vline(xintercept=32.2, color = "blue")+
+qplot(s, log_lik, data=quail_m_profile, geom = "line")+
+  geom_vline(xintercept=6.6, color = "red")+
+  geom_vline(xintercept=6.9, color = "red")+
+  geom_vline(xintercept=6.5, color = "blue")+
+  geom_vline(xintercept=7, color = "blue")+
   theme_minimal()
 
 ```
@@ -484,13 +549,6 @@ plot(prof)
 
 ```
 
-```{r}
-
-quail_m_profile %>%
-  filter(log_lik >= max(log_lik) - qchisq(0.80, df = 1)/2) %>%
-  as.data.frame()
-
-```
 
 
 
@@ -526,12 +584,49 @@ lik_df_mult <- tibble(mean = seq(0, 1, length.out = 100)) %>%
 
 ```
 
-```
+
 
 5d) The Power of the Prior (10 points)
 This data set is pretty big. After excluding NAs in the variables we’re interested in, it’s over 766 lines of data! Now, a lot of data can overwhelm a strong prior. But only to a point. Show first that there is enough data here that a prior for the slope with an estimate of 0.7 and a sd of 0.01 is overwhelmed and produces similar results to the default prior. How different are the results from the original?
 
+```{r}
+
+tarsus_brm
+
+```
+
+```{r}
+tarsus_brm_prior <- brm(Culmen..mm. ~ Tarsus..mm.,
+                         data = quail_data,
+                         family=gaussian(),
+                   prior = c(prior(normal(0.7, 0.01), class = Intercept),
+                             prior(normal(1, 1), class = b),
+                             prior(uniform(3, 3.4), class = sigma)))
+
+tarsus_brm_prior
+```
+
 Second, randomly sample 10, 100, 300, and 500 data points. At which level is our prior overwhelmed (e.g., the prior slope becomes highly unlikely)? Communicate that visually in the best way you feel gets the point across, and explain your reasoning.
+
+```{r}
+nsims <- 10
+
+posterior_sims  <- data.frame(sampled_lambda = sample(6:13, size = nsims, 
+                                     replace=TRUE, 
+                                     prob = bayes_analysis$posterior), 
+                              sim = 1:nsims) %>%
+  group_by(sim) %>%
+  nest() %>%
+  mutate(predicted_values = purrr::map(data, ~rpois(10, .$sampled_lambda))) %>%
+  unnest(predicted_values) %>%
+  ungroup()
+
+ggplot() +
+    geom_density(data=posterior_sims, mapping=aes(group = sim, x=predicted_values), color="black") +
+  geom_density(mapping=aes(x=pois_data), fill="lightblue", color = "red", alpha = 0.7) +
+  theme_bw()
+
+```
 
 +4 for a function that means you don’t have to copy and paste the model over and over. + 4 more if you use map() in combination with a tibble to make this as code-efficient as possible. This will also make visualization easier.
 
