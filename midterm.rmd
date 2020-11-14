@@ -47,6 +47,10 @@ library(profileModel)
 library(brms)
 library(bayesplot)
 library(reactable)
+library(tidybayes)
+library("bayesplot")
+library("rstanarm")
+options(mc.cores = parallel::detectCores())
 ```
 
 ### 1) Sampling your system (10 points)
@@ -232,26 +236,24 @@ skimr::skim(quail_data)
 To begin with, I’d like you to fit the relationship that describes how Tarsus (leg) length predicts upper beak (Culmen) length. Fit this relationship using least squares, likelihood, and Bayesian techniques. For each fit, demonstrate that the necessary assumptions have been met. Note, functions used to fit with likelihood and Bayes may or may not behave well when fed NAs. So look out for those errors.
 
 ```{r}
-
+#generate a plot of the quail data
 quail_plot <- ggplot(data = quail_data,
        mapping = aes(x = Tarsus..mm., y = Culmen..mm.)) +
   geom_point(alpha = 0.5)+
   theme_classic()
 
-quail_plot
-
+#plot with line
+quail_plot + 
+  stat_smooth(method=lm, formula=y~x)
 ```
+
+<span style="color: green;">The variance of residuals appear to violate homoscedasticity, evident by the increase in variation as the mean increases. This indicates a glm may be better suited, as it reweights the larger variances.</span>
 
 ```{r}
 #fit the relationship of tarsus length predicting upper beak using least squares
 
 LSquail <- lm(Culmen..mm. ~ Tarsus..mm., data = quail_data)
 
-coef(LSquail)
-
-```
-
-```{r}
 #simulate the data
 LSquail_sims <- simulate(LSquail, nsim = 20) %>%
   pivot_longer(
@@ -270,48 +272,40 @@ ggplot() +
 
 ```
 
-<span style="color: green;">The relationship improves as culmen length increases.</span>
+<span style="color: green;">The simulated data does not recapitulate our observed values.</span>
 
 ```{r}
+
+#check the relationship of residual vs. fitted values
 plot(LSquail, which =1)
 
-
 ```
 
-<span style="color: green;">The residuals vs. fitted plot upholds the assumption that residuals and fitted values are independent. The is evident by the cloud formation around the 0 line.</span>
+<span style="color: green;">The residuals vs. fitted plot appears to be clustered in two regions, however, this may be due to small sample size as residuals have a cloud formation. However, this may be suggestive of non-linearity and the need to restructure the model.</span>
 
 ```{r}
-plot(LSquail, which =2)
-```
+#check normality of residuals
+residuals(LSquail) %>% hist()
 
-<span style="color: green;">This qqplot maintains the assumption of normally distributed data, as the residuals 
+```
+<span style="color: green;">Residuals are normally distributed.</span>
 
 ```{r}
-#f-tests of model
-anova(LSquail)
-```
 
-```{r}
-#t-tests of parameters
-summary(LSquail)
-```
+plot(LSquail, which = 2)
 
 
-```{r}
-#plot with line
-quail_plot + 
-  stat_smooth(method=lm, formula=y~x)
+
 ```
+
+<span style="color: green;">This qqplot suggests we investigate the model.</span>
 
 Likelihood Regression
 
-```{r}
-hist(quail_data$Tarsus..mm.)
-
-
-```
 
 ```{r}
+
+#GLM for quail data
 ggplot(quail_data, 
        mapping = aes(x = Tarsus..mm., y = Culmen..mm.)) +
   geom_point() +
@@ -339,10 +333,9 @@ quail_mle <- glm(Culmen..mm. ~ Tarsus..mm.,
 fitted <- predict(quail_mle)
 res <- residuals(quail_mle)
 
-qplot(fitted, res)+
-  stat_smooth()
-
+qplot(fitted, res)
 ```
+
 
 ```{r}
 
@@ -351,41 +344,30 @@ qqnorm(res)
 
 
 
+
 ```
+
+<span style="color: green;">The linearity of the GLM qqplot is better behaved than the LM plot</span>
 
 ```{r}
 hist(res)
 
 ```
 
-```{r}
-#LRT test of model
-quail_mod_null <- glm(Tarsus..mm.~ 1, 
-               family = gaussian(link = "identity"), 
-               data=quail_data)
-  
-anova(quail_mod_null, quail_mle, test = "LRT")
-
-```
-
-```{r}
-
-#t-tests of parameters
-summary(quail_mle)
+<span style="color: green;">Residuals have a normal distribution.</span>
 
 
-```
 
 Bayes Regression
 
 ```{r}
 options(mc.cores = parallel::detectCores())
 set.seed(600)
-tarsus_brm <- brm(Culmen..mm. ~ Tarsus..mm.,
+quail_brm <- brm(Culmen..mm. ~ Tarsus..mm.,
                   data = quail_data,
                   family = gaussian(link = "identity"))
 
-plot(tarsus_brm)+
+plot(quail_brm)+
   scale_color_manual(values = c("red", "blue", "orange", "yellow"))
 
 ```
@@ -394,65 +376,53 @@ plot(tarsus_brm)+
 
 ```{r}
 
-tarsus_posterior <- posterior_samples(tarsus_brm, add_chain = T)
-
-head(tarsus_posterior)
-
-```
-
-```{r}
-mcmc_trace(tarsus_posterior)+
-  scale_color_manual(values = c("red", "blue", "orange", "yellow"))
+#does our data match the chains for y-distributions?
+color_scheme_set("green")
+pp_check(quail_brm, "dens_overlay")+
+  theme_light()
 
 ```
 
-```{r}
-rhat(tarsus_brm)
 
-```
+<span style="color: green;">The data contains trends that are not well-reflected in the chains.</span>
 
-```{r}
 
-mcmc_acf(tarsus_posterior)
-
-```
-
-```{r}
-tarsus_fit <- fitted(tarsus_brm) %>% as.data.frame()
-tarsus_res <- residuals(tarsus_brm) %>% as.data.frame()
-
-plot(tarsus_fit$Estimate, tarsus_res$Estimate)
-
-```
 
 
 ```{r}
+#fitted vs. residual, do we meet linearity assumption?
+quail_fit <- fitted(quail_brm) %>% as.data.frame()
+quail_res <- residuals(quail_brm) %>% as.data.frame()
 
-qqnorm(tarsus_res$Estimate)
-qqline(tarsus_res$Estimate)
+plot(quail_fit$Estimate, quail_res$Estimate)
 
 ```
 
-# Check the match between our data and our chains 
-# for distributions of y
-pp_check(seal_lm_bayes, "dens_overlay")
+<span style="color: green;">The residuals vs fitted appears to cluster at two points, suggesting that this model violates the assumption of linearity.</span>
 
-# Is our error normal? 
-# About error and future predictions
-pp_check(seal_lm_bayes, "error_hist", bins = 10)
-pp_check(seal_lm_bayes, "error_scatter_avg")
+```{r}
 
-# fitted v. residual 
-# did we miss a nonlinearity
-seal_res <- residuals(seal_lm_bayes) %>% as_tibble
-seal_fit <- fitted(seal_lm_bayes) %>% as_tibble
+qqnorm(quail_res$Estimate)
+qqline(quail_res$Estimate)
 
-plot(y = seal_res$Estimate, x = seal_fit$Estimate)
+```
+
 
 
 
 5b) Three interpretations (10 points)
 OK, now that we have fits, take a look! Do the coefficients and their associated measures of error in their estimation match? How would we interpret the results from these different analyses differently? Or would we? Note, confint works on lm objects as well.
+
+```{r}
+#LM coef
+
+LSquail <- lm(Culmen..mm. ~ Tarsus..mm., data = quail_data)
+
+coef(LSquail)
+
+####
+
+```
 
 5c) Everyday I’m Profilin’ (10 points)
 For your likelihood fit, are your profiles well behaved? For just the slope, use grid sampling to create a profile. You’ll need to write functions for this, sampling the whole grid of slope and intercept, and then take out the relevant slices as we have done before. Use the results from the fit above to provide the reasonable bounds of what you should be profiling over (3SE should do). Is it well behaved? Plot the profile and give the 80% and 95% CI (remember how we use the chisq here!). Verify your results with profileModel.
@@ -561,70 +531,81 @@ plot(prof80)
 
 ```
 
-````{r}
-set.seed(607)
-samp <- rnorm(quail_data$Tarsus..mm.)
-
-norm_lik <- function(samp){
-  dnorm(samp, mean = samp, log = FALSE) %>% prod()
-}
-
-norm_loglik <- function(samp){
-  dnorm(samp, mean = samp, log = TRUE) %>% sum()
-}
-
-# let's get our likelihood surface
-lik_df_mult <- tibble(mean = seq(0, 1, length.out = 100)) %>%
-  rowwise(mean) %>%
-  mutate(lik = norm_lik(mean),
-           loglik = norm_loglik(mean)) %>%
-  ungroup()
-
-
-
-```
-
-
 
 5d) The Power of the Prior (10 points)
 This data set is pretty big. After excluding NAs in the variables we’re interested in, it’s over 766 lines of data! Now, a lot of data can overwhelm a strong prior. But only to a point. Show first that there is enough data here that a prior for the slope with an estimate of 0.7 and a sd of 0.01 is overwhelmed and produces similar results to the default prior. How different are the results from the original?
 
 ```{r}
 
-tarsus_brm
+quail_brm
 
 ```
 
 ```{r}
-tarsus_brm_prior <- brm(Culmen..mm. ~ Tarsus..mm.,
+adj_brm_prior <- brm(Culmen..mm. ~ Tarsus..mm.,
                          data = quail_data,
                          family=gaussian(),
-                   prior = c(prior(normal(0.7, 0.01), class = Intercept),
-                             prior(normal(1, 1), class = b),
-                             prior(uniform(3, 3.4), class = sigma)))
+                   prior = (prior(normal(0.7, 0.01), class = b)))
+adj_brm_prior
+```
 
-tarsus_brm_prior
+```{r}
+
+
+adjPriorCoef <- fixef(adj_brm_prior)
+adjCoef_wide <- spread_draws(adj_brm_prior,
+                             b_Intercept,
+                             b_Tarsus..mm.)
+#add a line
+quail_coefs <- fixef(quail_brm)
+quail_coefs_wide <- spread_draws(quail_brm,
+                                b_Intercept,
+                                b_Tarsus..mm.)
+```
+
+```{r}
+
+quail_plot +  
+  
+  geom_abline(data = quail_coefs_wide,
+              aes(slope = b_Tarsus..mm.,
+                  intercept = b_Intercept),
+              color = "blue",
+              alpha = 0.1) +
+  #median fit
+  geom_abline(slope = quail_coefs[2,1],
+              intercept = quail_coefs[1,1],
+              color = "red",
+              size = 1)+
+  
+  geom_abline(data = adjCoef_wide,
+              aes(slope = b_Tarsus..mm.,
+                  intercept = b_Intercept),
+              color = "orange",
+              alpha = 0.1) +
+  #median fit
+  geom_abline(slope = adjPriorCoef[2,1],
+              intercept = adjPriorCoef[1,1],
+              color = "green",
+              size = 1)
+
+
+
+
+```
+
+```{r}
+
+model <- stan_glm(Culmen..mm. ~ Tarsus..mm., data= quail_data, chains=4)
+posterior <- as.matrix(model)
+
+mcmc_areas(posterior,
+           pars = c("Tarsus..mm."))
 ```
 
 Second, randomly sample 10, 100, 300, and 500 data points. At which level is our prior overwhelmed (e.g., the prior slope becomes highly unlikely)? Communicate that visually in the best way you feel gets the point across, and explain your reasoning.
 
 ```{r}
-nsims <- 10
-
-posterior_sims  <- data.frame(sampled_lambda = sample(6:13, size = nsims, 
-                                     replace=TRUE, 
-                                     prob = bayes_analysis$posterior), 
-                              sim = 1:nsims) %>%
-  group_by(sim) %>%
-  nest() %>%
-  mutate(predicted_values = purrr::map(data, ~rpois(10, .$sampled_lambda))) %>%
-  unnest(predicted_values) %>%
-  ungroup()
-
-ggplot() +
-    geom_density(data=posterior_sims, mapping=aes(group = sim, x=predicted_values), color="black") +
-  geom_density(mapping=aes(x=pois_data), fill="lightblue", color = "red", alpha = 0.7) +
-  theme_bw()
 
 ```
 
