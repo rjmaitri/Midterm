@@ -48,8 +48,9 @@ library(brms)
 library(bayesplot)
 library(reactable)
 library(tidybayes)
-library("bayesplot")
-library("rstanarm")
+library(bayesplot)
+library(rstanarm)
+library(modelr)
 options(mc.cores = parallel::detectCores())
 ```
 
@@ -194,7 +195,11 @@ We have discussed multiple inferential frameworks this semester. Frequentist NHS
 
 What do you feel is the inferential framework that you adopt as a scientist? Why? Include in your answer why you prefer the inferential tools (e.g. confidence intervals, test statistics, out-of-sample prediction, posterior probabilities, etc.) of your chosen worldview and why you do not like the ones of the other one. This includes defining just what those different tools mean, as well as relating them to the things you study. extra credit for citing and discussing outside sources - one point per source/point
 
-<span style="color: green;">I am inclined towards inferential thought processes that resemble Bayesian probabilistic thinking, as I tend to make causal inferences from observing patterns. Further, this inferential thought process is influenced by prior knowledge which is analguous to a conditional probability. 
+<span style="color: green;">I am inclined towards inferential thought processes that resemble Bayesian probabilistic thinking, as I tend to make causal inferences by observing patterns. Further, this inferential thought process is influenced by my prior knowledge which is analguous to a conditional probability. Although, my mind is often misled by conditional probabilities if the math is not explicitly shown. For example, I don't perform the mental math necessary to determine a posterior probability of having a disease given a positive test result. The statistics required to formulate this posterior can be easily misinterpreted if taken in piecemeal. A low false-positive rate and a relatively high test result specificity give the impression that a P(have the disease|positive test result) is highly likely, however, the sample size of the false positive rate needs to be taken into account. After factoring in sample size, the chance of not having the disease can overwhelm the posterior and contrast my initial appraisal.</span>
+
+<span style="color: green;">As an undergraduate scientist, Frequentist Null Hypthoesis Significance Testing has been the primary inferential framework used within my studies. For instance, hypotheses in Genetics (BIOL254) are tested by calculating probabilities for allele inheritance by applying expected and observed frequencies to the chi-square distribution using the appropriate degrees of freedom. The probability value generated from the chi-square distribution is then analyzed against a threshold value for significance. P-values below the threshold are considered statisically significant and fails to accept falsification. 
+
+                #######PICK UP AT COUNT DATA AND LIKELHOOD ###################
 
 
 
@@ -211,7 +216,8 @@ I’ve referenced the following figure a few times. I’d like you to demonstrat
 
 4a Extra Credit (10 Points)
 Why is this a bad parody of frequentist statistics?
-<span style="color: green;">The p-value of 1/36 is specific to obtaining two dice rolls of 6 and is independent of the probablity of the sun exploding. Therefore, this is a bad parody because the null hypothesis that the sun did not explode is rejected using the probability of obtaining two sixes.</span>
+
+<span style="color: green;">The p-value of 1/36 is specific to obtaining two dice rolls of 6 and is independent of the probablity of the sun exploding. Therefore, this is a bad parody because the null hypothesis that the sun did not explode is rejected using the independent probability of obtaining two sixes. While it is unlikely that the machine lied, it is far more unlikely that the sun went nova.</span>
 
 
 
@@ -338,13 +344,7 @@ qplot(fitted, res)
 
 
 ```{r}
-
-
 qqnorm(res)
-
-
-
-
 ```
 
 <span style="color: green;">The linearity of the GLM qqplot is better behaved than the LM plot</span>
@@ -363,12 +363,12 @@ Bayes Regression
 ```{r}
 options(mc.cores = parallel::detectCores())
 set.seed(600)
+color_scheme_set("yellow")
 quail_brm <- brm(Culmen..mm. ~ Tarsus..mm.,
                   data = quail_data,
                   family = gaussian(link = "identity"))
 
-plot(quail_brm)+
-  scale_color_manual(values = c("red", "blue", "orange", "yellow"))
+plot(quail_brm)
 
 ```
 
@@ -536,6 +536,36 @@ plot(prof80)
 This data set is pretty big. After excluding NAs in the variables we’re interested in, it’s over 766 lines of data! Now, a lot of data can overwhelm a strong prior. But only to a point. Show first that there is enough data here that a prior for the slope with an estimate of 0.7 and a sd of 0.01 is overwhelmed and produces similar results to the default prior. How different are the results from the original?
 
 ```{r}
+#Check the posterior distribution of the informative prior
+#adjust the prior slope to 0.7 and sd = 0.01
+new_prior <- normal(location = c(0.7, 0.01), scale = c(2.5, 1))
+
+
+new_model <- stan_glm(Culmen..mm. ~ Tarsus..mm., data= quail_data, prior = normal(location = 0.7, scale = 0.01), chains=4)
+                  
+new_posterior <- as.matrix(new_model)
+
+mcmc_areas(new_posterior,
+           pars = c("Tarsus..mm."))
+
+```
+
+```{r}
+###Check the posterior distribution of the default(uninformed) prior
+
+model <- stan_glm(Culmen..mm. ~ Tarsus..mm., data= quail_data, chains=4)
+
+prior_summary(model)
+
+posterior <- as.matrix(model)
+
+mcmc_areas(posterior,
+           pars = c("Tarsus..mm."))
+
+
+```
+
+```{r}
 
 quail_brm
 
@@ -571,7 +601,7 @@ quail_plot +
               aes(slope = b_Tarsus..mm.,
                   intercept = b_Intercept),
               color = "blue",
-              alpha = 0.1) +
+              alpha = 0.06) +
   #median fit
   geom_abline(slope = quail_coefs[2,1],
               intercept = quail_coefs[1,1],
@@ -582,7 +612,7 @@ quail_plot +
               aes(slope = b_Tarsus..mm.,
                   intercept = b_Intercept),
               color = "orange",
-              alpha = 0.1) +
+              alpha = 0.08) +
   #median fit
   geom_abline(slope = adjPriorCoef[2,1],
               intercept = adjPriorCoef[1,1],
@@ -594,14 +624,6 @@ quail_plot +
 
 ```
 
-```{r}
-
-model <- stan_glm(Culmen..mm. ~ Tarsus..mm., data= quail_data, chains=4)
-posterior <- as.matrix(model)
-
-mcmc_areas(posterior,
-           pars = c("Tarsus..mm."))
-```
 
 Second, randomly sample 10, 100, 300, and 500 data points. At which level is our prior overwhelmed (e.g., the prior slope becomes highly unlikely)? Communicate that visually in the best way you feel gets the point across, and explain your reasoning.
 
@@ -609,6 +631,65 @@ Second, randomly sample 10, 100, 300, and 500 data points. At which level is our
 
 ```
 
+```{r}
+library(modelr)
+  BRMquail = brm(Culmen..mm. ~ Tarsus..mm., data = quail_data)
+
+
+  
+samps10 <-  quail_data %>%
+    data_grid(Tarsus..mm. = seq_range(Tarsus..mm., n = 10))  %>%
+    add_fitted_draws(quail_brm) %>%
+  sample_draws(1) %>% as_tibble()
+
+prior_ten <- fixef(samps10)
+
+samps100 <- quail_data %>%
+    data_grid(Tarsus..mm. = seq_range(Tarsus..mm., n = 100))  %>%
+    add_fitted_draws(quail_brm) %>%
+  sample_draws(1)
+
+samps300 <- quail_data %>%
+    data_grid(Tarsus..mm. = seq_range(Tarsus..mm., n = 300))  %>%
+    add_fitted_draws(quail_brm) %>%
+  sample_draws(1)
+
+samps500 <- quail_data %>%
+    data_grid(Tarsus..mm. = seq_range(Tarsus..mm., n = 500))  %>%
+    add_fitted_draws(quail_brm) %>%
+  sample_draws(1)
+
+prior_summary(quail_brm)
+
+ggplot() +
+    geom_density(data=samps10, mapping=aes(x=.value), color="black", alpha = 0.7) +
+  geom_density(data=samps100, mapping=aes(x=.value), color="red", alpha = 0.7) +
+  geom_density(data=samps300, mapping=aes(x=.value), color="green", alpha = 0.7) +
+  geom_density(data=samps500, mapping=aes(x=.value), color="orange", alpha = 0.7) +
+  theme_bw()
+
+```
+
+ 
+```{r}
+
+#####THISSSS isss going to be the one
+
+fnc_smple <- function(x)
+
+sample <-  quail_data[sample(nrow(quail_data), x), ]
+
+model <- stan_glm(Culmen..mm. ~ Tarsus..mm., data= sample, chains=1)
+
+prior_summary(model)
+
+posterior <- as.matrix(model)
+
+mcmc_areas(posterior,
+           pars = c("Tarsus..mm."))
+
+
+```
 +4 for a function that means you don’t have to copy and paste the model over and over. + 4 more if you use map() in combination with a tibble to make this as code-efficient as possible. This will also make visualization easier.
 
 6) Cross-Validation and Priors (15 points)
