@@ -384,7 +384,7 @@ pp_check(quail_brm, "dens_overlay")+
 ```
 
 
-<span style="color: green;">The data contains trends that are not well-reflected in the chains.</span>
+<span style="color: green;">The data contains trends that are not well-reflected in the predicted values.</span>
 
 
 
@@ -599,39 +599,53 @@ Second, randomly sample 10, 100, 300, and 500 data points. At which level is our
 
 ```{r}
 
-pp_check(quail_brm, type = "stat", stat = 'mean', nsamples = 10)
 
+#draw random samples from quail data
+
+
+Functionally <- function(x) {
+
+samples <- quail_data[sample(nrow(quail_data), x), ] %>%
+  na.omit()
+
+#input into BRMS
+
+Brm_object <- brm(Culmen..mm. ~ Tarsus..mm.,
+                  data = samples,
+                  family = gaussian(link = "identity"))
+
+#get_prior
+
+out <- summary(Brm_object)
+
+
+
+return(out)
+
+}
+
+
+Functionally(10)
 ```
-
-
 
 ```{r}
-pp_check(quail_brm, type = "stat", stat = 'mean', nsamples = 100)
+
+Functionally(100)
 
 ```
-
-
-
-
 
 ```{r}
 
-pp_check(quail_brm, type = "stat", stat = 'mean', nsamples = 300)
+Functionally(300)
 
 ```
-
-
-
 
 ```{r}
 
-pp_check(quail_brm, type = "stat", stat = 'mean', nsamples = 500)
 
+
+summary(quail_brm)
 ```
-
-
-
-
 
 +4 for a function that means you don’t have to copy and paste the model over and over. + 4 more if you use map() in combination with a tibble to make this as code-efficient as possible. This will also make visualization easier.
 
