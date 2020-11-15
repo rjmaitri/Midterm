@@ -612,39 +612,42 @@ samples <- quail_data[sample(nrow(quail_data), x), ] %>%
 
 Brm_object <- brm(Culmen..mm. ~ Tarsus..mm.,
                   data = samples,
-                  family = gaussian(link = "identity"))
+                  family = gaussian(link = "identity"),
+                  chains = 1,
+                  iter = 500)
 
 #get_prior
 
-out <- summary(Brm_object)
+out <- plot(Brm_object)
 
+sampCoef <- fixef(Brm_object)
+sampcoefs_wide <- spread_draws(Brm_object,
+                                b_Intercept,
+                                b_Tarsus..mm.)
 
-
-return(out)
+return(Brm_object)
 
 }
 
-
-Functionally(10)
+tensamps <- Functionally(10)
 ```
 
 ```{r}
 
-Functionally(100)
-
-```
-
-```{r}
-
-Functionally(300)
+hundredsamps <- Functionally(100)
 
 ```
 
 ```{r}
 
+threehunsamps <- Functionally(300)
 
+```
 
-summary(quail_brm)
+```{r}
+
+fivehunsamps <- Functionally(500)
+
 ```
 
 +4 for a function that means you don’t have to copy and paste the model over and over. + 4 more if you use map() in combination with a tibble to make this as code-efficient as possible. This will also make visualization easier.
