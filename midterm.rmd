@@ -535,41 +535,7 @@ plot(prof80)
 5d) The Power of the Prior (10 points)
 This data set is pretty big. After excluding NAs in the variables we’re interested in, it’s over 766 lines of data! Now, a lot of data can overwhelm a strong prior. But only to a point. Show first that there is enough data here that a prior for the slope with an estimate of 0.7 and a sd of 0.01 is overwhelmed and produces similar results to the default prior. How different are the results from the original?
 
-```{r}
-#Check the posterior distribution of the informative prior
-#adjust the prior slope to 0.7 and sd = 0.01
-new_prior <- normal(location = c(0.7, 0.01), scale = c(2.5, 1))
 
-
-new_model <- stan_glm(Culmen..mm. ~ Tarsus..mm., data= quail_data, prior = normal(location = 0.7, scale = 0.01), chains=4)
-                  
-new_posterior <- as.matrix(new_model)
-
-mcmc_areas(new_posterior,
-           pars = c("Tarsus..mm."))
-
-```
-
-```{r}
-###Check the posterior distribution of the default(uninformed) prior
-
-model <- stan_glm(Culmen..mm. ~ Tarsus..mm., data= quail_data, chains=4)
-
-prior_summary(model)
-
-posterior <- as.matrix(model)
-
-mcmc_areas(posterior,
-           pars = c("Tarsus..mm."))
-
-
-```
-
-```{r}
-
-quail_brm
-
-```
 
 ```{r}
 adj_brm_prior <- brm(Culmen..mm. ~ Tarsus..mm.,
@@ -580,13 +546,15 @@ adj_brm_prior
 ```
 
 ```{r}
+#Prepare coefficients and credible intervals from the BRMs for graphing
 
-
+#adjusted prior coefficient and credible interval
 adjPriorCoef <- fixef(adj_brm_prior)
 adjCoef_wide <- spread_draws(adj_brm_prior,
                              b_Intercept,
                              b_Tarsus..mm.)
-#add a line
+
+#default prior coefficient and credible interval
 quail_coefs <- fixef(quail_brm)
 quail_coefs_wide <- spread_draws(quail_brm,
                                 b_Intercept,
@@ -595,8 +563,9 @@ quail_coefs_wide <- spread_draws(quail_brm,
 
 ```{r}
 
+#tarsus v. culmen plot
 quail_plot +  
-  
+#credible interval of default prior
   geom_abline(data = quail_coefs_wide,
               aes(slope = b_Tarsus..mm.,
                   intercept = b_Intercept),
@@ -607,13 +576,13 @@ quail_plot +
               intercept = quail_coefs[1,1],
               color = "red",
               size = 1)+
-  
+# credible interval of adjusted prior   
   geom_abline(data = adjCoef_wide,
               aes(slope = b_Tarsus..mm.,
                   intercept = b_Intercept),
               color = "orange",
               alpha = 0.08) +
-  #median fit
+  #median fit of adjusted prior model
   geom_abline(slope = adjPriorCoef[2,1],
               intercept = adjPriorCoef[1,1],
               color = "green",
@@ -627,69 +596,43 @@ quail_plot +
 
 Second, randomly sample 10, 100, 300, and 500 data points. At which level is our prior overwhelmed (e.g., the prior slope becomes highly unlikely)? Communicate that visually in the best way you feel gets the point across, and explain your reasoning.
 
+
 ```{r}
+
+pp_check(quail_brm, type = "stat", stat = 'mean', nsamples = 10)
 
 ```
 
+
+
 ```{r}
-library(modelr)
-  BRMquail = brm(Culmen..mm. ~ Tarsus..mm., data = quail_data)
-
-
-  
-samps10 <-  quail_data %>%
-    data_grid(Tarsus..mm. = seq_range(Tarsus..mm., n = 10))  %>%
-    add_fitted_draws(quail_brm) %>%
-  sample_draws(1) %>% as_tibble()
-
-prior_ten <- fixef(samps10)
-
-samps100 <- quail_data %>%
-    data_grid(Tarsus..mm. = seq_range(Tarsus..mm., n = 100))  %>%
-    add_fitted_draws(quail_brm) %>%
-  sample_draws(1)
-
-samps300 <- quail_data %>%
-    data_grid(Tarsus..mm. = seq_range(Tarsus..mm., n = 300))  %>%
-    add_fitted_draws(quail_brm) %>%
-  sample_draws(1)
-
-samps500 <- quail_data %>%
-    data_grid(Tarsus..mm. = seq_range(Tarsus..mm., n = 500))  %>%
-    add_fitted_draws(quail_brm) %>%
-  sample_draws(1)
-
-prior_summary(quail_brm)
-
-ggplot() +
-    geom_density(data=samps10, mapping=aes(x=.value), color="black", alpha = 0.7) +
-  geom_density(data=samps100, mapping=aes(x=.value), color="red", alpha = 0.7) +
-  geom_density(data=samps300, mapping=aes(x=.value), color="green", alpha = 0.7) +
-  geom_density(data=samps500, mapping=aes(x=.value), color="orange", alpha = 0.7) +
-  theme_bw()
+pp_check(quail_brm, type = "stat", stat = 'mean', nsamples = 100)
 
 ```
 
- 
+
+
+
+
 ```{r}
 
-#####THISSSS isss going to be the one
-
-fnc_smple <- function(x)
-
-sample <-  quail_data[sample(nrow(quail_data), x), ]
-
-model <- stan_glm(Culmen..mm. ~ Tarsus..mm., data= sample, chains=1)
-
-prior_summary(model)
-
-posterior <- as.matrix(model)
-
-mcmc_areas(posterior,
-           pars = c("Tarsus..mm."))
-
+pp_check(quail_brm, type = "stat", stat = 'mean', nsamples = 300)
 
 ```
+
+
+
+
+```{r}
+
+pp_check(quail_brm, type = "stat", stat = 'mean', nsamples = 500)
+
+```
+
+
+
+
+
 +4 for a function that means you don’t have to copy and paste the model over and over. + 4 more if you use map() in combination with a tibble to make this as code-efficient as possible. This will also make visualization easier.
 
 6) Cross-Validation and Priors (15 points)
