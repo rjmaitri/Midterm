@@ -620,10 +620,6 @@ Brm_object <- brm(Culmen..mm. ~ Tarsus..mm.,
 
 out <- plot(Brm_object)
 
-sampCoef <- fixef(Brm_object)
-sampcoefs_wide <- spread_draws(Brm_object,
-                                b_Intercept,
-                                b_Tarsus..mm.)
 
 return(Brm_object)
 
@@ -636,11 +632,15 @@ tensamps <- Functionally(10)
 
 hundredsamps <- Functionally(100)
 
+plot(hundredsamps, par = "b_Tarsus..mm.")
+
+prior(hundredsamps, par = "b_Tarsus..mm.")
 ```
 
 ```{r}
 
 threehunsamps <- Functionally(300)
+
 
 ```
 
@@ -649,6 +649,85 @@ threehunsamps <- Functionally(300)
 fivehunsamps <- Functionally(500)
 
 ```
+
+```{r}
+
+#ten sample coefs and draws
+tensampCoef <- fixef(tensamps)
+tensampcoefs_wide <- spread_draws(tensamps,
+                                b_Intercept,
+                                b_Tarsus..mm.)
+
+#get posterior
+
+
+#100 sample coefs and draws
+hundredsampCoef <- fixef(hundredsamps)
+hundredcoefs_wide <- spread_draws(hundredsamps,
+                                b_Intercept,
+                                b_Tarsus..mm.)
+
+#500 sample coefs and draws
+fivesampCoef <- fixef(fivehunsamps)
+fivesampcoefs_wide <- spread_draws(fivehunsamps,
+                                b_Intercept,
+                                b_Tarsus..mm.)
+
+
+```
+
+
+```{r}
+
+quail_plot +  
+#simulated draws from ten samps
+  geom_abline(data = tensampcoefs_wide,
+              aes(slope = b_Tarsus..mm.,
+                  intercept = b_Intercept),
+              color = "orange",
+              alpha = 0.26) +
+  #median fit of ten samples
+  geom_abline(slope = tensampCoef[2,1],
+              intercept = tensampCoef[1,1],
+              color = "yellow",
+              size = 1)+
+  #simulated draws of 100 samples
+  geom_abline(data = hundredcoefs_wide,
+              aes(slope = b_Tarsus..mm.,
+                  intercept = b_Intercept),
+              color = "purple",
+              alpha = 0.16) +
+  
+  #median fit of 100 samples
+  geom_abline(slope = hundredsampCoef[2,1],
+              intercept = hundredsampCoef[1,1],
+              color = "white",
+              size = 1)+
+  
+  
+# credible interval of 500 samps  
+  geom_abline(data = fivesampcoefs_wide,
+              aes(slope = b_Tarsus..mm.,
+                  intercept = b_Intercept),
+              color = "orange",
+              alpha = 0.08) +
+  #median fit of 500 samps
+  geom_abline(slope = fivesampCoef[2,1],
+              intercept = fivesampCoef[1,1],
+              color = "green",
+              size = 1)
+
+
+```
+
+```{r}
+
+model <- stan_glm(Culmen..mm. ~ Tarsus..mm., data = quail_data,
+                  prior = normal(0, 3, autoscale = FALSE))
+
+get_prior(tensamps)
+```
+
 
 +4 for a function that means you don’t have to copy and paste the model over and over. + 4 more if you use map() in combination with a tibble to make this as code-efficient as possible. This will also make visualization easier.
 
