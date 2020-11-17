@@ -632,9 +632,8 @@ tensamps <- Functionally(10)
 
 hundredsamps <- Functionally(100)
 
-plot(hundredsamps, par = "b_Tarsus..mm.")
 
-prior(hundredsamps, par = "b_Tarsus..mm.")
+
 ```
 
 ```{r}
@@ -709,7 +708,7 @@ quail_plot +
   geom_abline(data = fivesampcoefs_wide,
               aes(slope = b_Tarsus..mm.,
                   intercept = b_Intercept),
-              color = "orange",
+              color = "blue",
               alpha = 0.08) +
   #median fit of 500 samps
   geom_abline(slope = fivesampCoef[2,1],
@@ -720,13 +719,8 @@ quail_plot +
 
 ```
 
-```{r}
+<span style="color: green;">The weakly informed prior has low certainty of estimating parameters when the sample size is ten. The certainty in parameter estimation increases as the prior becomes updated with new information and around 300 samples our estimate interval begins to resemble the theta of the entire data set.</span>
 
-model <- stan_glm(Culmen..mm. ~ Tarsus..mm., data = quail_data,
-                  prior = normal(0, 3, autoscale = FALSE))
-
-get_prior(tensamps)
-```
 
 
 +4 for a function that means you don’t have to copy and paste the model over and over. + 4 more if you use map() in combination with a tibble to make this as code-efficient as possible. This will also make visualization easier.
