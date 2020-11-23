@@ -506,21 +506,21 @@ quail_dist <- crossing(m = seq(30, 40, by = 0.1),
 
 ```{r}
 #profile for the mean
-quail_sd_profile <- quail_dist %>%
-  #group by sd
-  group_by(s) %>%
+quail_mean_profile <- quail_dist %>%
+  #group by mean
+  group_by(m) %>%
   #filter out mle
   filter(log_lik == max(log_lik)) %>%
   ungroup()
 
-qplot(s, log_lik, data=quail_sd_profile, geom = "line")
+qplot(m, log_lik, data=quail_mean_profile, geom = "line")
 
 ```
 
 
 
 ```{r}
-ninetyfive_CI <- quail_sd_profile %>%
+ninetyfive_CI <- quail_mean_profile %>%
   filter(log_lik > max(log_lik) - qchisq(0.95, df = 1)/2) %>%
     filter(row_number()==1 | row_number()==n())
 
@@ -528,7 +528,7 @@ ninetyfive_CI
 ```
 
 ```{r}
-eighty_CI <- quail_sd_profile %>%
+eighty_CI <- quail_mean_profile %>%
   filter(log_lik > max(log_lik) - qchisq(0.80, df = 1)/2) %>%
     filter(row_number()==1 | row_number()==n())
 
@@ -538,15 +538,15 @@ eighty_CI
 
 ```{r}
 quail_m_profile <- quail_dist %>%
-  group_by(s) %>%
+  group_by(m) %>%
   filter(log_lik == max(log_lik)) %>%
   ungroup()
 
-qplot(s, log_lik, data=quail_m_profile, geom = "line")+
-  geom_vline(xintercept=6.6, color = "red")+
-  geom_vline(xintercept=6.9, color = "red")+
-  geom_vline(xintercept=6.5, color = "blue")+
-  geom_vline(xintercept=7, color = "blue")+
+qplot(m, log_lik, data=quail_m_profile, geom = "line")+
+  geom_vline(xintercept=31.3, color = "red")+
+  geom_vline(xintercept=31.5, color = "red")+
+  geom_vline(xintercept=32, color = "blue")+
+  geom_vline(xintercept=32.2, color = "blue")+
   theme_minimal()
 
 ```
