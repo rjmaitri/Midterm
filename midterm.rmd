@@ -439,15 +439,35 @@ OK, now that we have fits, take a look! Do the coefficients and their associated
 LSquail <- lm(Culmen..mm. ~ Tarsus..mm., data = quail_data)
 
 coef(LSquail)
+```
 
+```{r}
+#Least squares confidence intervals
+confint(LSquail)
+```
+
+```{r}
 #Likelihood ~ GLM ####
-quail_mle
+coef(quail_mle)
+```
 
-#Bayes Regression ####
-quail_brm
-####
+
+```{r}
+confint(quail_mle)
 
 ```
+
+```{r}
+
+#Bayes Regression ####
+fixef(quail_brm)
+
+```
+
+<span style="color: green;">The coefficients of the dependent variable (Tarsus) and intercept for the three fits are approximately the same. We can interpret these results as mean Culmen size increasing by ~0.37mm for each 1mm increase in Tarsus size. The arbitrary Tarsus size of 0mm is associated with a approximately ~-.10 mean Culmen size.</span>
+
+<span style="color: green;">The least squares and likelihood models have confidence intervals, which 
+
 
 5c) Everyday I’m Profilin’ (10 points)
 For your likelihood fit, are your profiles well behaved? For just the slope, use grid sampling to create a profile. You’ll need to write functions for this, sampling the whole grid of slope and intercept, and then take out the relevant slices as we have done before. Use the results from the fit above to provide the reasonable bounds of what you should be profiling over (3SE should do). Is it well behaved? Plot the profile and give the 80% and 95% CI (remember how we use the chisq here!). Verify your results with profileModel.
