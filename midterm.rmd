@@ -51,6 +51,7 @@ library(tidybayes)
 library(bayesplot)
 library(rstanarm)
 library(modelr)
+library(loo)
 options(mc.cores = parallel::detectCores())
 ```
 
@@ -207,17 +208,36 @@ What do you feel is the inferential framework that you adopt as a scientist? Why
 I’ve referenced the following figure a few times. I’d like you to demonstrate your understanding of Bayes Theorem by hand (e.g. calculate it out and show your work - you can do this all in R, I’m not a monster) showing what is the probability of the sun exploding is given that the device said yes. Assume that your prior probability that the sun explodes is p(Sun Explodes) = 0.0001 (I’ll leave it to you to get p(Sun Doesn’t Explode). The rest of the information you need - and some you don’t - is in the cartoon - p(Yes | Explodes), p(Yes | Doesn’t Explode), p(No | Explodes), p(No | Doesn’t Explode).
 
 ```{r}
+#Calculate the Posterior
 
-#P(Explodes|Yes)= P(Yes|Explodes)p(sun explodes)/p(sun does not explode) 
+#Calculate the likelihood ####
+#P(Yes|Explodes)
+Likelihood = (35/36)*.0001
+
+#Prior ~ p(Explodes) ####
+Prior = .0001
+
+#calculate the denominator - law of total probabilities for sun exploding ####
+# (yes|explodes)+(no|explodes)
+
+Marginal_Likelihood = (35/36*.0001)+(1/36)*(1-.0001)
+
+
+############### CALCULATE THE POSTERIOR
+#P(Explodes|Yes)= P(Yes|Explodes)p(Explodes)/p(Explodes) 
+
+Posterior = (Likelihood*Prior)/Marginal_Likelihood
 
 
 
 ```
 
+<span style="color: green;">The probability that the sun exploded given that the machine said yes is `r Posterior`.</span>
+
 4a Extra Credit (10 Points)
 Why is this a bad parody of frequentist statistics?
 
-<span style="color: green;">The p-value of 1/36 is specific to obtaining two dice rolls of 6 and is independent of the probablity of the sun exploding. Therefore, this is a bad parody because the null hypothesis that the sun did not explode is rejected using the independent probability of obtaining two sixes. While it is unlikely that the machine lied, it is far more unlikely that the sun went nova.</span>
+<span style="color: green;">The stick-figure scientist did not consider the conditional probability of the sun exploding. The p-value of 1/36 is specific to false-positive rate, which is independent of the probablity of the sun exploding. Therefore, this is a bad parody because the null hypothesis that the sun did not explode is rejected using the independent probability of obtaining two sixes. While it is unlikely that the machine lied, it is far more unlikely that the sun went nova.</span>
 
 
 
@@ -287,7 +307,7 @@ plot(LSquail, which =1)
 
 ```
 
-<span style="color: green;">The residuals vs. fitted plot appears to be clustered in two regions, however, this may be due to small sample size as residuals have a cloud formation. However, this may be suggestive of non-linearity and the need to restructure the model.</span>
+<span style="color: green;">The residuals vs. fitted plot appears to be clustered in two regions, however, this may be due to sample size as residuals have a cloud formation. This may be suggestive of non-linearity and the need to restructure the model.</span>
 
 ```{r}
 #check normality of residuals
@@ -304,14 +324,14 @@ plot(LSquail, which = 2)
 
 ```
 
-<span style="color: green;">This qqplot suggests we investigate the model.</span>
+<span style="color: green;">This qqplot has suspect linearity.</span>
 
 Likelihood Regression
 
 
 ```{r}
 
-#GLM for quail data
+#Plot GLM for quail data
 ggplot(quail_data, 
        mapping = aes(x = Tarsus..mm., y = Culmen..mm.)) +
   geom_point() +
@@ -321,7 +341,7 @@ ggplot(quail_data,
 
 ```{r}
 
-#fit a model using the iteratively reweighted least squares algorithm in GLM
+#fit a Likelihood model using the iteratively reweighted least squares algorithm in GLM
 quail_mle <- glm(Culmen..mm. ~ Tarsus..mm.,
                  #identity means 1:1 translation between linear predictors and shape of curve
                 family = gaussian(link = "identity"),
@@ -363,7 +383,7 @@ Bayes Regression
 ```{r}
 options(mc.cores = parallel::detectCores())
 set.seed(600)
-color_scheme_set("yellow")
+color_scheme_set("orange")
 quail_brm <- brm(Culmen..mm. ~ Tarsus..mm.,
                   data = quail_data,
                   family = gaussian(link = "identity"))
@@ -414,12 +434,17 @@ qqline(quail_res$Estimate)
 OK, now that we have fits, take a look! Do the coefficients and their associated measures of error in their estimation match? How would we interpret the results from these different analyses differently? Or would we? Note, confint works on lm objects as well.
 
 ```{r}
-#LM coef
+#LM coef ####
 
 LSquail <- lm(Culmen..mm. ~ Tarsus..mm., data = quail_data)
 
 coef(LSquail)
 
+#Likelihood ~ GLM ####
+quail_mle
+
+#Bayes Regression ####
+quail_brm
 ####
 
 ```
@@ -457,10 +482,7 @@ quail_dist <- crossing(m = seq(30, 40, by = 0.1),
 
 ```
 
-```{r}
-quail_dist %>%
-  filter(log_lik == max(log_lik))
-```
+
 
 ```{r}
 #profile for the mean
@@ -613,7 +635,7 @@ samples <- quail_data[sample(nrow(quail_data), x), ] %>%
 Brm_object <- brm(Culmen..mm. ~ Tarsus..mm.,
                   data = samples,
                   family = gaussian(link = "identity"),
-                  chains = 1,
+                  chains = 2,
                   iter = 500)
 
 #get_prior
@@ -719,7 +741,7 @@ quail_plot +
 
 ```
 
-<span style="color: green;">The weakly informed prior has low certainty of estimating parameters when the sample size is ten. The certainty in parameter estimation increases as the prior becomes updated with new information and around 300 samples our estimate interval begins to resemble the theta of the entire data set.</span>
+<span style="color: green;">The weakly informed prior has low certainty of estimating parameters when the sample size is ten. The certainty in parameter estimation increases as the prior becomes updated with new information and around 300 samples our estimate interval begins to resemble the theta of the entire data set. Judging by the confidence bands, any model made with 100 samples should generalize to new data fairly well.</span>
 
 
 
@@ -728,8 +750,41 @@ quail_plot +
 6) Cross-Validation and Priors (15 points)
 There is some interesting curvature in the culmen-tarsus relationship. Is the relationship really linear? Squared? Cubic? Exponential? Use one of the cross-validation techniques we explored to show which model is more predictive. Justify your choice of technique. Do you get a clear answer? What does it say?
 
+<span style="color: green;">The culmen-tarsus relationship is cubic</span>
+
+```{r}
+
+Brm_object1 <- brm(Culmen..mm. ~ poly(Tarsus..mm.,3),
+                  data = na.omit(quail_data),
+                  family = gaussian(link = "identity"))
+
+color_scheme_set("green")
+pp_check(Brm_object1, "dens_overlay")+
+  theme_light()
+
+```
+
+<span style="color: green;">This is a much better fit than the linear model from before.</span>
+
+```{r}
+
+quail_waic <- waic(quail_brm)
+quail_waic
+
+```
+
+```{r}
 
 
+quail_loo <- loo(quail_brm)
+quail_loo
+
+poly_loo <- loo(Brm_object1)
+#
+compare(quail_loo, poly_loo)
+
+
+```
 
 
 #####citations
