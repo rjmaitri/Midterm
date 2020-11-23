@@ -58,12 +58,19 @@ options(mc.cores = parallel::detectCores())
 ### 1) Sampling your system (10 points)
 #### Each of you has a study system your work in and a question of interest.
 
-<span style="color: green;">High-throughput sequencing technology provides data on transcript abundance and diversity. This technology allows us to interrogate the transcriptomic effects of chemotherapeutic drug treatments on breast cancer cell (BCC) lines. We can interrogate the transcriptional effects of chemotherapeutics by culturing a BCC line with different combinations of chemotherapuetic agents, thus, interrogate the transcriptional changes that occur under chemothrapy.</span>
+<span style="color: green;">High-throughput sequencing technology provides data on transcript abundance and diversity. This technology allows us to interrogate the transcriptomic effects of chemotherapeutic drug treatments on breast cancer cell (BCC) lines.</span>
+
+
+
+<span style="color: green;">For this type of experiment, random sampling from breast cancer tissue throughout the population would be ideal, however 2/3rds of all in vitro breast cancer research uses three BCC lines, with the the oldest line (MCF-7) dating back to 1970. MCF-7 retains many features of the tumor that it originated from, making it suitable for use in cancer research. The validity of statistical relationships are enhanced by using technical replicates, which means the MCF-7 line is divided and allowed to grow into numerous samples.</span> 
+
+<span style="color: green;">This type of experiment is prone to errors relating to improper experimental design. Asynchrounously running the experiments, use of different reagents, inconsistent cell culture techniques can create batch and counfounding effects on the results of the experiment.</span> 
+
+<span style="color: green;">Further, the differences in transcriptome abundance and diversity across samples is confounded by the the genomic instability of cancer. This begs the question, is the differential expression due to treatment or genomic instability? These need to be minimized in order to provide credibility to the statistical analysis of the chemotherapeutic treatments.</span>
+
 
 <span style="color: green;">The negative binomial distribution is suited for this data because it is count data with a variance that shifts away from the mean with greater gene expression. The variance behaves this way because experiments typically have 3-5 samples with a few highly expressed genes and many, lowly expressed genes. The negative binomial distribution is suited for this data, as it accomodates the variance shifting away from the mean with higher levels of gene expression. Theoretically, a poisson distribution would work with a larger sample size, however, this is financially burdensome.</span>
 
-<span style="color: green;">Random sampling from breast cancer tissue throughout the population would be ideal, however 2/3rds of all in vitro breast cancer research uses three BCC lines, with the the oldest line has been cultured since 1970 and retains many features of the tumor that it originated from. Biological triplicates and experimental replicates enhance the validity of estimation. 
-Improper experimental design and execution create batch effects. Asynchrounously running the experiments, different reagents, inconsistent cell culture techniques can create batch and counfounding effects on the results of the experiment. These need to be minimized in order to provide credibility to the recorded effects of the chemotherapeutic agents.</span> 
 
 <span style="color: green;">Further, the genomic instability of cancer creates the possibility for confounding effects, as the differential gene expression seen across treatments may be related to differences within the sample itself.</span>
 
@@ -196,9 +203,11 @@ We have discussed multiple inferential frameworks this semester. Frequentist NHS
 
 What do you feel is the inferential framework that you adopt as a scientist? Why? Include in your answer why you prefer the inferential tools (e.g. confidence intervals, test statistics, out-of-sample prediction, posterior probabilities, etc.) of your chosen worldview and why you do not like the ones of the other one. This includes defining just what those different tools mean, as well as relating them to the things you study. extra credit for citing and discussing outside sources - one point per source/point
 
-<span style="color: green;">I am inclined towards inferential thought processes that resemble Bayesian probabilistic thinking, as I tend to make causal inferences by observing patterns. Further, this inferential thought process is influenced by my prior knowledge which is analguous to a conditional probability. Although, my mind is often misled by conditional probabilities if the math is not explicitly shown. For example, I don't perform the mental math necessary to determine a posterior probability of having a disease given a positive test result. The statistics required to formulate this posterior can be easily misinterpreted if taken in piecemeal. A low false-positive rate and a relatively high test result specificity give the impression that a P(have the disease|positive test result) is highly likely, however, the sample size of the false positive rate needs to be taken into account. After factoring in sample size, the chance of not having the disease can overwhelm the posterior and contrast my initial appraisal.</span>
+<span style="color: green;">I tend to reach conclusions by observing patterns, therefore I am inclined towards  Bayesian probabilistic thinking and likelihood. For example, I'm often aware of and influenced by prior knowledge which is analguous to a conditional probability. Although, I am often misled by conditional probabilities if the math is not explicitly shown. For example, I don't perform the mental math necessary to determine a posterior probability of having a disease given a positive test result. The statistics required to formulate this posterior can be easily misinterpreted if taken in piecemeal. A low false-positive rate and a relatively high test result specificity give the impression that a P(have the disease|positive test result) is highly likely, however, the sample size of the false positive rate needs to be taken into account. After factoring in sample size, the chance of not having the disease can overwhelm the posterior and contrast my initial appraisal.</span>
 
-<span style="color: green;">As an undergraduate scientist, Frequentist Null Hypthoesis Significance Testing has been the primary inferential framework used within my studies. For instance, hypotheses in Genetics (BIOL254) are tested by calculating probabilities for allele inheritance by applying expected and observed frequencies to the chi-square distribution using the appropriate degrees of freedom. The probability value generated from the chi-square distribution is then analyzed against a threshold value for significance. P-values below the threshold are considered statisically significant and fails to accept falsification. 
+<span style="color: green;">As an undergraduate scientist, Frequentist Null Hypthoesis Significance Testing has been the most common inferential framework used within my studies. For instance, hypotheses in Genetics (BIOL254) are tested by calculating probabilities for allele inheritance by applying expected and observed frequencies to the chi-square distribution using the appropriate degrees of freedom. The probability value generated from the chi-square distribution is then analyzed against a threshold value for significance. P-values below the threshold are considered statisically significant and fails to accept falsification. These tools are useful for linear relationships with normally distributed error generating processes, however, the more complex models involving non-normal error distributions require a different set of tools.</span>
+
+<span style="color: green;">The tools afforded to Bayesian analysis 
 
                 #######PICK UP AT COUNT DATA AND LIKELHOOD ###################
 
@@ -475,16 +484,7 @@ For your likelihood fit, are your profiles well behaved? For just the slope, use
 
 
 ```{r}
-#####
-#For just the slope, use grid sampling to create a profile. 
-#You’ll need to write functions for this, sampling the whole grid of slope and intercept, 
-#and then take out the relevant slices as we have done before. 
-
-#Use the results from the fit above to provide the reasonable bounds of what you should be profiling over 
-#(3SE should do). Is it well behaved? Plot the profile and give the 80% and 95% CI (remember how we use the chisq here!).
-#Verify your results with profileModel.
-
-
+#function for log-likelihood ####
 norm_likelihood <- function(obs, mean_est, sd_est){
   
   #data generating process
@@ -494,6 +494,8 @@ norm_likelihood <- function(obs, mean_est, sd_est){
   sum(dnorm(obs, mean = est, sd = sd_est, log = TRUE))
   
 }
+
+#sample across 3 SE
 quail_dist <- crossing(m = seq(30, 40, by = 0.1),
                        s=seq(5, 15, by = 0.1)) %>%
   rowwise() %>%
@@ -507,19 +509,22 @@ quail_dist <- crossing(m = seq(30, 40, by = 0.1),
 ```{r}
 #profile for the mean
 quail_mean_profile <- quail_dist %>%
-  #group by mean
-  group_by(m) %>%
+  #group by sd
+  group_by(s) %>%
   #filter out mle
   filter(log_lik == max(log_lik)) %>%
   ungroup()
 
-qplot(m, log_lik, data=quail_mean_profile, geom = "line")
+
+#Check to see if we have a profile
+qplot(s, log_lik, data=quail_mean_profile, geom = "line")
 
 ```
 
-
+<span style="color: green;">The profile of the parameter is well behaved.</span>
 
 ```{r}
+#obtain ninety-five CI
 ninetyfive_CI <- quail_mean_profile %>%
   filter(log_lik > max(log_lik) - qchisq(0.95, df = 1)/2) %>%
     filter(row_number()==1 | row_number()==n())
@@ -527,7 +532,10 @@ ninetyfive_CI <- quail_mean_profile %>%
 ninetyfive_CI
 ```
 
+
+
 ```{r}
+#Obtain 80% CI
 eighty_CI <- quail_mean_profile %>%
   filter(log_lik > max(log_lik) - qchisq(0.80, df = 1)/2) %>%
     filter(row_number()==1 | row_number()==n())
@@ -538,15 +546,15 @@ eighty_CI
 
 ```{r}
 quail_m_profile <- quail_dist %>%
-  group_by(m) %>%
+  group_by(s) %>%
   filter(log_lik == max(log_lik)) %>%
   ungroup()
 
-qplot(m, log_lik, data=quail_m_profile, geom = "line")+
-  geom_vline(xintercept=31.3, color = "red")+
-  geom_vline(xintercept=31.5, color = "red")+
-  geom_vline(xintercept=32, color = "blue")+
-  geom_vline(xintercept=32.2, color = "blue")+
+qplot(s, log_lik, data=quail_m_profile, geom = "line")+
+  geom_vline(xintercept=6.5, color = "red")+
+  geom_vline(xintercept=6.9, color = "red")+
+  geom_vline(xintercept=6.6, color = "blue")+
+  geom_vline(xintercept=6.7, color = "blue")+
   theme_minimal()
 
 ```
@@ -560,7 +568,6 @@ plot(prof)
 
 
 ```
-
 
 
 
@@ -580,6 +587,7 @@ This data set is pretty big. After excluding NAs in the variables we’re intere
 
 
 ```{r}
+#construct a BRM with adjusted prior slope and sd
 adj_brm_prior <- brm(Culmen..mm. ~ Tarsus..mm.,
                          data = quail_data,
                          family=gaussian(),
