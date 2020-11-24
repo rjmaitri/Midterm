@@ -202,15 +202,15 @@ We have discussed multiple inferential frameworks this semester. Frequentist NHS
 
 What do you feel is the inferential framework that you adopt as a scientist? Why? Include in your answer why you prefer the inferential tools (e.g. confidence intervals, test statistics, out-of-sample prediction, posterior probabilities, etc.) of your chosen worldview and why you do not like the ones of the other one. This includes defining just what those different tools mean, as well as relating them to the things you study. extra credit for citing and discussing outside sources - one point per source/point
 
-<span style="color: green;">I tend to reach conclusions by observing patterns, therefore I am inclined towards  Bayesian probabilistic thinking and likelihood. For example, I'm often aware of and influenced by prior knowledge which is analguous to a conditional probability. Although, I am often misled by conditional probabilities if the math is not explicitly shown. For example, I don't perform the mental math necessary to determine a posterior probability of having a disease given a positive test result. The statistics required to formulate this posterior can be easily misinterpreted if taken in piecemeal. A low false-positive rate and a relatively high test result specificity give the impression that a P(have the disease|positive test result) is highly likely, however, the sample size of the false positive rate needs to be taken into account. After factoring in sample size, the chance of not having the disease can overwhelm the posterior and contrast my initial appraisal.</span>
+<span style="color: green;">I tend to reach conclusions by observing patterns, therefore I am inclined towards  Bayesian probabilistic thinking and likelihood; p(H|D). For example, I'm often aware of and influenced by prior knowledge which is analguous to a conditional probability. Although, I am often misled by conditional probabilities if the math is not explicitly shown. For example, I don't perform the mental math necessary to determine a posterior probability of having a disease given a positive test result. The statistics required to formulate this posterior can be easily misinterpreted if taken in piecemeal. A low false-positive rate and a relatively high test result specificity give the impression that a P(have the disease|positive test result) is highly likely, however, the sample size of the false positive rate needs to be taken into account. After factoring in sample size, the chance of not having the disease can overwhelm the posterior and contrast my initial appraisal.</span>
 
 <span style="color: green;">As an undergraduate scientist, Frequentist Null Hypthoesis Significance Testing has been the most common inferential framework used within my studies. For instance, hypotheses in Genetics (BIOL254) are tested by calculating probabilities for allele inheritance by applying expected and observed frequencies to the chi-square distribution using the appropriate degrees of freedom. The probability value generated from the chi-square distribution is then analyzed against a threshold value for significance. P-values below the threshold are considered statisically significant and fails to accept falsification. These tools are useful for linear relationships with normally distributed error generating processes, however, the more complex models involving non-normal error distributions require a different set of tools.</span>
 
-<span style="color: green;">Although, I am more experienced with NHST, I am growing towards the more intuitive Bayesian probabilistic thinking. NHST is too binary in its conclusions, an association is either false or true. The NHST confidence interval only tells us if a re-constructed interval will produce the same or similar parameter. A Bayesian confidence interval tells us the probability that the true paramter is contained within a given interval.</span>
+<span style="color: green;">Although, I am more experienced with NHST, I am growing a prefernce towards Bayesian probabilistic thinking. NHST is too binary in its conclusions, as an association is considered either false or true depending upon the alpha (signigicance level). The NHST confidence interval only tells us if a re-constructed interval will produce the same or similar parameter. A Bayesian confidence interval tells us the probability that the true paramter is contained within a given interval.</span>
 
-<span style="color: green;">
+<span style="color: green;">Model comparison and Assessment of predictive ability are powerful tools in assessing how models fit the data. Out of sample prediction, k-folds and leave one out cross validation show the strength of model fits and give insight into which interactions fit the data, as well as over-fit the data.</span?
 
-                #######PICK UP AT COUNT DATA AND LIKELHOOD ###################
+                
 
 
 
@@ -709,8 +709,6 @@ tensampcoefs_wide <- spread_draws(tensamps,
                                 b_Intercept,
                                 b_Tarsus..mm.)
 
-#get posterior
-
 
 #100 sample coefs and draws
 hundredsampCoef <- fixef(hundredsamps)
@@ -729,7 +727,7 @@ fivesampcoefs_wide <- spread_draws(fivehunsamps,
 
 
 ```{r}
-
+###Plot the sample draws at each level to see how well they fit the data
 quail_plot +  
 #simulated draws from ten samps
   geom_abline(data = tensampcoefs_wide,
@@ -819,7 +817,19 @@ compare_mod <- compare_ic(quail_aic, cubic)
 compare_mod
 ```
 
-<span style="color: green;">Tehcnically the cubic fit gives a better score, however, it isn't substantial enough to determine which model has better predictive abilities.</span>
 
 
 
+
+```{r}
+####Enter {AICcmodavg}! #####
+
+LSquail <- lm(Culmen..mm. ~ Tarsus..mm., data = quail_data)
+
+LScubicQuail <- lm(Culmen..mm. ~ poly(Tarsus..mm.,3), data = na.omit(quail_data))
+
+aictab(list(LSquail, LScubicQuail),
+       c("QuailLM", "CubicQuailLM"))
+```
+
+<span style="color: green;">Technically the cubic fit gives a better score, however, it isn't substantial enough to determine which model has better predictive abilities. The best evidence in support of cubic is how well it fits the data on the graph.</span>
