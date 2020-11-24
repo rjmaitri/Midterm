@@ -52,27 +52,26 @@ library(bayesplot)
 library(rstanarm)
 library(modelr)
 library(loo)
+library(AICcmodavg)
 options(mc.cores = parallel::detectCores())
 ```
 
 ### 1) Sampling your system (10 points)
 #### Each of you has a study system your work in and a question of interest.
 
-<span style="color: green;">High-throughput sequencing technology provides data on transcript abundance and diversity. This technology allows us to interrogate the transcriptomic effects of chemotherapeutic drug treatments on breast cancer cell (BCC) lines.</span>
+<span style="color: green;">Tumor evolution and heterogeneity creates drug-resistance, understanding the diversity that a tumor undergoes has great clinical significance. High-throughput sequencing technology provides data on transcript abundance and diversity. This technology allows us to interrogate the transcriptomic effects of chemotherapeutic drug treatments on breast cancer cell (BCC) lines. Statistical analysis of these transcriptomic changes is a powerful tool for discovering drug-resistant clones, a major obstacle in personalized cancer therapy.</span>
 
 
 
-<span style="color: green;">For this type of experiment, random sampling from breast cancer tissue throughout the population would be ideal, however 2/3rds of all in vitro breast cancer research uses three BCC lines, with the the oldest line (MCF-7) dating back to 1970. MCF-7 retains many features of the tumor that it originated from, making it suitable for use in cancer research. The validity of statistical relationships are enhanced by using technical replicates, which means the MCF-7 line is divided and allowed to grow into numerous samples.</span> 
+<span style="color: green;">Random sampling from breast cancer tissue throughout the global population would be ideal sampling method, however 2/3rds of all in vitro breast cancer research uses three BCC lines, with the the oldest line (MCF-7) dating back to 1970. MCF-7 retains many features of the tumor that it originated from, making it useful in cancer research. The validity of statistical relationships are enhanced by using technical replicates, which means the MCF-7 line is divided and allowed to grow into numerous samples.</span> 
 
-<span style="color: green;">This type of experiment is prone to errors relating to improper experimental design. Asynchrounously running the experiments, use of different reagents, inconsistent cell culture techniques can create batch and counfounding effects on the results of the experiment.</span> 
+<span style="color: green;">This type of experiment is prone to errors relating to improper experimental design. Asynchrounously running the experiments, use of different reagents, inconsistent cell culture techniques can create batch and counfounding effects on the results of the experiment. Therefore, the experiment needs to be designed with consistent treatment in order to protect the validitiy of the statistical analysis.</span> 
 
 <span style="color: green;">Further, the differences in transcriptome abundance and diversity across samples is confounded by the the genomic instability of cancer. This begs the question, is the differential expression due to treatment or genomic instability? These need to be minimized in order to provide credibility to the statistical analysis of the chemotherapeutic treatments.</span>
 
 
 <span style="color: green;">The negative binomial distribution is suited for this data because it is count data with a variance that shifts away from the mean with greater gene expression. The variance behaves this way because experiments typically have 3-5 samples with a few highly expressed genes and many, lowly expressed genes. The negative binomial distribution is suited for this data, as it accomodates the variance shifting away from the mean with higher levels of gene expression. Theoretically, a poisson distribution would work with a larger sample size, however, this is financially burdensome.</span>
 
-
-<span style="color: green;">Further, the genomic instability of cancer creates the possibility for confounding effects, as the differential gene expression seen across treatments may be related to differences within the sample itself.</span>
 
 2) Data Reshaping and Visuzliation
 Johns Hopkins has been maintaining one of the best Covid-19 timseries data sets out there. The data on the US can be found here with information about what is in the data at https://github.com/CSSEGISandData/COVID-19/tree/master/csse_covid_19_data
@@ -207,7 +206,9 @@ What do you feel is the inferential framework that you adopt as a scientist? Why
 
 <span style="color: green;">As an undergraduate scientist, Frequentist Null Hypthoesis Significance Testing has been the most common inferential framework used within my studies. For instance, hypotheses in Genetics (BIOL254) are tested by calculating probabilities for allele inheritance by applying expected and observed frequencies to the chi-square distribution using the appropriate degrees of freedom. The probability value generated from the chi-square distribution is then analyzed against a threshold value for significance. P-values below the threshold are considered statisically significant and fails to accept falsification. These tools are useful for linear relationships with normally distributed error generating processes, however, the more complex models involving non-normal error distributions require a different set of tools.</span>
 
-<span style="color: green;">The tools afforded to Bayesian analysis 
+<span style="color: green;">Although, I am more experienced with NHST, I am growing towards the more intuitive Bayesian probabilistic thinking. NHST is too binary in its conclusions, an association is either false or true. The NHST confidence interval only tells us if a re-constructed interval will produce the same or similar parameter. A Bayesian confidence interval tells us the probability that the true paramter is contained within a given interval.</span>
+
+<span style="color: green;">
 
                 #######PICK UP AT COUNT DATA AND LIKELHOOD ###################
 
@@ -323,6 +324,7 @@ plot(LSquail, which =1)
 residuals(LSquail) %>% hist()
 
 ```
+
 <span style="color: green;">Residuals are normally distributed.</span>
 
 ```{r}
@@ -552,9 +554,9 @@ quail_m_profile <- quail_dist %>%
 
 qplot(s, log_lik, data=quail_m_profile, geom = "line")+
   geom_vline(xintercept=6.5, color = "red")+
-  geom_vline(xintercept=6.9, color = "red")+
+  geom_vline(xintercept=7.0, color = "red")+
   geom_vline(xintercept=6.6, color = "blue")+
-  geom_vline(xintercept=6.7, color = "blue")+
+  geom_vline(xintercept=6.9, color = "blue")+
   theme_minimal()
 
 ```
@@ -794,26 +796,30 @@ pp_check(Brm_object1, "dens_overlay")+
 
 <span style="color: green;">This is a much better fit than the linear model from before.</span>
 
-```{r}
 
-quail_waic <- waic(quail_brm)
-quail_waic
-
-```
 
 ```{r}
-
-
-quail_loo <- loo(quail_brm)
-quail_loo
-
-poly_loo <- loo(Brm_object1)
-#
-compare(quail_loo, poly_loo)
-
+#widely applicable information criterion for culmen~tarsus brm
+quail_aic <- waic(quail_brm)
+quail_aic
 
 ```
 
 
-#####citations
-https://link.springer.com/article/10.1023/B:BREA.0000014042.54925.cc (2/3 ~ 3 BCC lines)
+```{r}
+#widely applicable information criterion for cubic-polynomial culmen~tarsus brm
+cubic <- waic(Brm_object1)
+cubic
+
+```
+
+```{r}
+#compare both models
+compare_mod <- compare_ic(quail_aic, cubic)
+compare_mod
+```
+
+<span style="color: green;">Tehcnically the cubic fit gives a better score, however, it isn't substantial enough to determine which model has better predictive abilities.</span>
+
+
+
