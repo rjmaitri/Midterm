@@ -453,6 +453,11 @@ coef(LSquail)
 ```
 
 ```{r}
+summary(LSquail)
+
+```
+
+```{r}
 #Least squares confidence intervals
 confint(LSquail)
 ```
@@ -486,23 +491,30 @@ For your likelihood fit, are your profiles well behaved? For just the slope, use
 
 
 ```{r}
-#function for log-likelihood ####
-norm_likelihood <- function(obs, mean_est, sd_est){
-  
-  #data generating process
-  est <- mean_est
-  
-  #log likelihood
-  sum(dnorm(obs, mean = est, sd = sd_est, log = TRUE))
-  
-}
 
-#sample across 3 SE
-quail_dist <- crossing(m = seq(30, 40, by = 0.1),
-                       s=seq(5, 15, by = 0.1)) %>%
+clean_quails <- na.omit(quail_data)
+############likelihood with grid sampling #################################
+norm_likelihood <- function(obs, B0, B1, sd){
+  
+  #data generating process (uses crossing variable names in y-hat equation)
+  est <- clean_quails$Tarsus..mm.  * B1 + B0
+  
+  #log likelihood function
+  sum(dnorm(obs, mean = est, sd = sd, log = TRUE))
+  }
+
+
+#grid sample for likelihood 
+quail_dist <- crossing(Slope = seq(0.33, 0.4, by = 0.01), 
+                      Int =seq(-0.09, 0.10, by = 0.01),
+                      stdd = seq(1.1,1.4, by = 0.01)) %>%
   rowwise() %>%
-  mutate(log_lik = norm_likelihood(obs = na.omit(quail_data$Tarsus..mm.), mean_est = m, sd_est = s)) %>% 
+  mutate(log_lik = norm_likelihood(obs = clean_quails$Culmen..mm., B0 = Int, B1 = Slope, sd = stdd)) %>% 
   ungroup()
+
+#extract the MLE
+quail_MLE <- quail_dist %>%
+  filter(log_lik == max(log_lik))
 
 ```
 
@@ -511,15 +523,15 @@ quail_dist <- crossing(m = seq(30, 40, by = 0.1),
 ```{r}
 #profile for the mean
 quail_mean_profile <- quail_dist %>%
-  #group by sd
-  group_by(s) %>%
+  #group by Int
+  group_by(Int) %>%
   #filter out mle
   filter(log_lik == max(log_lik)) %>%
   ungroup()
 
 
 #Check to see if we have a profile
-qplot(s, log_lik, data=quail_mean_profile, geom = "line")
+qplot(Int, log_lik, data=quail_mean_profile, geom = "line")
 
 ```
 
@@ -536,6 +548,7 @@ ninetyfive_CI
 
 
 
+
 ```{r}
 #Obtain 80% CI
 eighty_CI <- quail_mean_profile %>%
@@ -546,20 +559,6 @@ eighty_CI
 
 ```
 
-```{r}
-quail_m_profile <- quail_dist %>%
-  group_by(s) %>%
-  filter(log_lik == max(log_lik)) %>%
-  ungroup()
-
-qplot(s, log_lik, data=quail_m_profile, geom = "line")+
-  geom_vline(xintercept=6.5, color = "red")+
-  geom_vline(xintercept=7.0, color = "red")+
-  geom_vline(xintercept=6.6, color = "blue")+
-  geom_vline(xintercept=6.9, color = "blue")+
-  theme_minimal()
-
-```
 
 ```{r}
 #verify 95% CI results
@@ -582,6 +581,7 @@ plot(prof80)
 
 ```
 
+<span style="color: green;">The profile model confidence intervals are within range of the MLE grid sampling function.</span>
 
 5d) The Power of the Prior (10 points)
 This data set is pretty big. After excluding NAs in the variables we’re interested in, it’s over 766 lines of data! Now, a lot of data can overwhelm a strong prior. But only to a point. Show first that there is enough data here that a prior for the slope with an estimate of 0.7 and a sd of 0.01 is overwhelmed and produces similar results to the default prior. How different are the results from the original?
